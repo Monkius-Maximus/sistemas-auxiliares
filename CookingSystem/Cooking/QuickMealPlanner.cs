@@ -34,7 +34,7 @@ public static class QuickMealPlanner
 
         return anchors
             .Where(a => knownAnchorNames.Contains(a.DishName))
-            .Select(a => Build(a, basesById, defsById, stockById, pantry, cookingLevel))
+            .Select(a => Build(a, anchors, basesById, defsById, stockById, pantry, cookingLevel))
             .OrderByDescending(o => o.CanMake)
             .ThenByDescending(o => o.Preview?.Quality ?? 0f)
             .ToList();
@@ -42,6 +42,7 @@ public static class QuickMealPlanner
 
     private static QuickMealOption Build(
         RecipeAnchor anchor,
+        IReadOnlyList<RecipeAnchor> anchors,
         IReadOnlyDictionary<string, BaseItemDef> basesById,
         IReadOnlyDictionary<string, IngredientDef> defsById,
         IReadOnlyDictionary<string, int> stockById,
@@ -65,21 +66,26 @@ public static class QuickMealPlanner
         if (ingredientCount > baseItem.IngredientSlotsForLevel(cookingLevel))
             return Blocked(anchor, baseItem, cost, portions, "Perícia insuficiente para tantos ingredientes");
 
-        // Sessão descartável só para prever o resultado. Ela devolve tudo à despensa ao sair
-        // de escopo porque nunca chamamos Cook() — o estoque real não é tocado aqui.
+        // Sessão descartável só para prever o resultado: o construtor de CookingSession copia
+        // a despensa, então nada do que acontece aqui toca o estoque real do Sim.
         var session = new CookingSession(pantry, cookingLevel);
         session.SetBase(baseItem);
         foreach (var (def, units) in portions)
             session.AddUnit(def, units);
 
+        // A lista inteira de âncoras, não só esta: é o que Cook() vai receber, e o casamento
+        // é por conjunto de chaves. Prever com uma âncora só mostraria um número que o prato
+        // não teria caso as porções casassem antes com outra âncora.
+        var preview = DishEvaluator.Evaluate(session, anchors);
+
         return new QuickMealOption
         {
             Anchor = anchor,
             Base = baseItem,
-            Name = anchor.DishName,
+            Name = preview.Name,
             Cost = cost,
             CanMake = true,
-            Preview = DishEvaluator.Evaluate(session, new[] { anchor }),
+            Preview = preview,
             Portions = portions,
         };
     }
