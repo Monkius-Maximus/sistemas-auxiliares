@@ -16,7 +16,14 @@ Cooking/   Modelo. Nenhuma chamada de API do Godot.
            QuickMealPlanner + QuickMealOption (menu rápido, puros)
 
 Content/   SampleContent — conteúdo de teste em código, com ícones placeholder.
-UI/        QuickMealMenu · CookingPanel · IngredientSlotView · CookingDemo. Zero estado próprio.
+
+UI/Context/  O shell reutilizável, sem nada de cozinha dentro.
+             PanelContext (a definição: 7 regiões) · PanelPrimitives (desenho) ·
+             ContextPanel (o painel) · PanelSkin (cores por papel). Namespace LifeSim.Ui.
+
+UI/        As definições de contexto deste sistema: CookingContext (painel manual) ·
+           QuickMealContext (menu rápido) · DishReadout · CookingDemo. Zero estado próprio.
+
 Tools/     BalanceCheck — roda o avaliador real sobre casos de referência.
 Scenes/    CookingDemo.tscn — cena principal.
 ```
@@ -33,14 +40,19 @@ As linhas do menu rápido **são** as `RecipeAnchor`. Não existe lista de prato
 à parte: `QuickMealPlanner` deriva tudo das âncoras que o Sim conhece, e custo e qualidade
 prevista saem do mesmo `DishEvaluator` que o painel usa.
 
+Os dois são o **mesmo painel** com definições diferentes — ver `docs/context-panel.md`.
+Cozinhar, comprar e construir devem ser definições de contexto, não janelas novas.
+
 ## Invariantes — não quebrar sem discutir
 
 1. **`DishEvaluator.Evaluate` é pura.** Sem estado, sem efeito colateral, sem `GD.Print`.
    O preview ao vivo e o ato de cozinhar chamam essa mesma função — é isso que garante
    que o número mostrado é o número recebido. Nunca criar uma "versão rápida para o preview".
 
-2. **A UI não guarda estado.** `CookingPanel` escuta `CookingSession.Changed` e redesenha.
-   Se aparecer um campo no painel que espelha algo da sessão, é bug.
+2. **A UI não guarda estado.** O `ContextPanel` escuta `CookingSession.Changed` e reconstrói
+   a definição inteira. Se aparecer um campo no painel que espelha algo da sessão, é bug —
+   o estado de tela que não tem dono no modelo (qual contexto está aberto, qual linha está
+   marcada no menu) fica no host que abriu a interação, nunca no painel.
 
 3. **`CookingSession` é dona da despensa E do prato.** As duas quantidades mudam na mesma
    operação. Não mover o inventário para outra classe.
@@ -89,6 +101,8 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 | Reação por traço de personalidade | não existe | usar `Group` + `DominantAxis` |
 | Ícones de verdade | `IngredientDef.Icon` | placeholders coloridos |
 | Conteúdo em `.tres` | `Content/SampleContent.cs` | tudo em código |
+| Primitivos `grid.dual` e `text` | `UI/Context/PanelPrimitives.cs` | no mock, sem sistema que os use |
+| Despensa que diminui ao cozinhar | `CookingDemo` | cada preparo abre uma sessão nova |
 
 NPCs devem cozinhar com este mesmo código: perícia baixa produz prato ruim por ter menos
 slots e teto menor, não por uma tabela separada de "pratos de NPC".

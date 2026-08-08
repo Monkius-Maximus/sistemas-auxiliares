@@ -29,9 +29,19 @@ Data/      IngredientDef, BaseItemDef, RecipeAnchor, FlavorProfile, Nutrition
 Cooking/   CookingSession (estado)  ·  DishEvaluator + DishNamer (funções puras)
            → nenhuma chamada de API do Godot; testável fora do engine
 
-UI/        CookingPanel, IngredientSlotView, CookingDemo
-           → zero estado próprio; escuta CookingSession.Changed e redesenha
+UI/Context/  ContextPanel, PanelContext, PanelPrimitives, PanelSkin
+           → o shell reutilizável: um painel para toda interação do jogo
+
+UI/        CookingContext, QuickMealContext, CookingDemo
+           → zero estado próprio; escuta CookingSession.Changed e reconstrói a definição
 ```
+
+## Um painel, vários contextos
+
+O painel manual e o menu rápido são o **mesmo** `ContextPanel` lendo definições diferentes.
+Sete regiões nomeadas — subject, actions, primary, secondary, preview, readout, commit — e um
+punhado de primitivos que se recombinam. Loja, bancada e baú entram como definições novas, não
+como janelas novas. O contrato está em [`docs/context-panel.md`](docs/context-panel.md).
 
 A regra que sustenta tudo: **o preview ao vivo e o ato de cozinhar chamam a mesma função.**
 `DishEvaluator.Evaluate` é pura, então o número que o jogador vê enquanto mexe é literalmente
