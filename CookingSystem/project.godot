@@ -1,0 +1,17 @@
+; Projeto Godot 4 (C#). Ajuste config/features se sua engine for outra versão.
+
+config_version=5
+
+[application]
+
+config/name="CookingSystem"
+run/main_scene="res://Scenes/CookingDemo.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="CookingSystem"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"

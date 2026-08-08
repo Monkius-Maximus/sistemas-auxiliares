@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel de Cozinha — mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #141618;
+    --panel:     #1e2124;
+    --panel-2:   #26292c;
+    --cell:      #202325;
+    --line:      #33373b;
+    --line-soft: #2b2f32;
+    --ink:       #e2e4e6;
+    --ink-dim:   #8b9196;
+    --ink-mute:  #5b6165;
+    --amber:     #ffd479;
+    --fill-bg:   #26331d;
+    --bad:       #c0504d;
+    --mid:       #d6a13a;
+    --good:      #6aa84f;
+    --sans: "Barlow Semi Condensed", "Roboto Condensed", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 28px 20px 56px;
+    background:
+      radial-gradient(1100px 520px at 50% -12%, #1c2023 0%, var(--bg) 62%);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page { max-width: 940px; margin: 0 auto; }
+
+  .brief { margin-bottom: 20px; }
+  .brief h1 {
+    font-size: 21px; font-weight: 600; letter-spacing: .01em;
+    margin: 0 0 4px;
+  }
+  .brief p {
+    margin: 0; color: var(--ink-dim); font-size: 14px; max-width: 62ch;
+    line-height: 1.5;
+  }
+
+  /* ---- seletor de estado ---- */
+  .states {
+    display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 14px;
+  }
+  .states button {
+    font-family: var(--sans); font-size: 13px; letter-spacing: .02em;
+    color: var(--ink-dim); background: var(--panel);
+    border: 1px solid var(--line-soft); border-radius: 3px;
+    padding: 7px 13px; cursor: pointer;
+    transition: color .12s, border-color .12s, background .12s;
+  }
+  .states button:hover { color: var(--ink); }
+  .states button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  .states button[aria-selected="true"] {
+    color: var(--ink); background: var(--panel-2); border-color: var(--line);
+  }
+  .states button i {
+    font-style: normal; font-family: var(--mono); font-size: 11px;
+    color: var(--ink-mute); margin-left: 7px;
+  }
+
+  /* ---- painel ---- */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 18px 44px -22px #000;
+  }
+  .titlebar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+    font-size: 14px; letter-spacing: .03em;
+  }
+  .titlebar .dot {
+    width: 13px; height: 13px; border-radius: 2px;
+    background: linear-gradient(150deg, #c9a86a, #8a6f45);
+  }
+  .titlebar .x {
+    margin-left: auto; color: var(--ink-mute); font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .body { display: grid; grid-template-columns: 268px 1fr; gap: 0; }
+  .left {
+    padding: 12px; border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 11px;
+  }
+  .right { padding: 12px; display: flex; flex-direction: column; gap: 9px; }
+
+  .eyebrow {
+    font-size: 11px; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .head { display: flex; align-items: baseline; justify-content: space-between; }
+  .head .count { font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+
+  /* ---- recipiente ---- */
+  .vessels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .vessel {
+    background: var(--cell); border: 1px solid var(--line-soft);
+    border-radius: 3px; padding: 7px 4px 6px;
+    text-align: center; font-size: 12px; color: var(--ink-dim);
+    cursor: pointer;
+  }
+  .vessel .glyph {
+    display: block; width: 22px; height: 22px; margin: 0 auto 4px;
+    border-radius: 3px; opacity: .5;
+  }
+  .vessel[aria-pressed="true"] {
+    border-color: var(--amber); color: var(--ink);
+    background: #2a2b25;
+  }
+  .vessel[aria-pressed="true"] .glyph { opacity: 1; }
+
+  /* ---- nome + nível ---- */
+  .dish-name {
+    font-size: 19px; font-weight: 500; line-height: 1.15; min-height: 44px;
+  }
+  .dish-name .star { color: var(--amber); font-size: 15px; }
+  .level { font-size: 12px; color: var(--ink-mute); margin-top: -6px; }
+
+  /* ---- qualidade ---- */
+  .quality-row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 12px; color: var(--ink-dim);
+  }
+  .quality-row b { font-family: var(--mono); font-size: 15px; font-weight: 700; }
+  .qbar {
+    height: 6px; border-radius: 3px; background: #2c3033; overflow: hidden;
+  }
+  .qbar span { display: block; height: 100%; transition: width .35s ease; }
+
+  /* ---- os cinco fatores: o elemento-assinatura ---- */
+  .factors { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+  .factor { display: grid; grid-template-columns: 62px 1fr 30px; align-items: center; gap: 7px; }
+  .factor label { font-size: 11px; color: var(--ink-mute); letter-spacing: .04em; }
+  .factor .track { height: 3px; background: #2c3033; border-radius: 2px; overflow: hidden; }
+  .factor .track span { display: block; height: 100%; background: var(--ink-dim); transition: width .35s ease; }
+  .factor .track span.weak { background: var(--bad); }
+  .factor var {
+    font-family: var(--mono); font-size: 10px; font-style: normal;
+    color: var(--ink-mute); text-align: right;
+  }
+
+  /* ---- stats ---- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .stat {
+    background: var(--cell); border-radius: 3px; padding: 5px 4px 4px;
+    text-align: center;
+  }
+  .stat em {
+    display: block; font-style: normal; font-size: 10px; letter-spacing: .05em;
+    color: var(--ink-mute); text-transform: uppercase;
+  }
+  .stat b { font-family: var(--mono); font-size: 14px; font-weight: 400; }
+  .stat b.pos { color: var(--good); }
+  .stat b.neg { color: var(--bad); }
+
+  .cook {
+    margin-top: auto; font-family: var(--sans); font-size: 15px;
+    letter-spacing: .04em; color: #16181a; background: var(--amber);
+    border: 0; border-radius: 3px; padding: 10px; cursor: pointer;
+  }
+  .cook[disabled] { background: #34383b; color: var(--ink-mute); cursor: not-allowed; }
+
+  /* ---- grades de slot ---- */
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .slot {
+    background: var(--cell); border: 1px solid var(--line-soft);
+    border-radius: 3px; padding: 6px 4px 5px; text-align: center;
+  }
+  .slot.in { background: var(--fill-bg); }
+  .slot.off { opacity: .38; }
+  .slot .icon {
+    width: 34px; height: 34px; margin: 0 auto 4px; border-radius: 4px;
+    box-shadow: inset 0 -8px 12px -8px rgba(0,0,0,.6);
+  }
+  .slot .name {
+    font-size: 11px; color: var(--ink-dim); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .slot .units {
+    font-family: var(--mono); font-size: 14px; color: #4a4f52; line-height: 1.5;
+  }
+  .slot.in .units { color: var(--amber); }
+  .slot .steps { display: flex; gap: 2px; justify-content: center; }
+  .slot .steps button {
+    flex: 1; max-width: 26px; font-family: var(--mono); font-size: 11px;
+    color: var(--ink-dim); background: #2b2f32; border: 0; border-radius: 2px;
+    padding: 2px 0; cursor: pointer;
+  }
+  .slot .steps button:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
+  .slot .steps button[disabled] { opacity: .3; cursor: not-allowed; }
+  .slot .stock {
+    font-family: var(--mono); font-size: 9px; color: #4f5457; margin-top: 3px;
+  }
+
+  .note {
+    margin-top: 16px; font-size: 13px; color: var(--ink-dim);
+    line-height: 1.55; max-width: 72ch;
+  }
+  .note code {
+    font-family: var(--mono); font-size: 12px; color: var(--ink);
+    background: var(--panel); padding: 1px 4px; border-radius: 2px;
+  }
+
+  @media (max-width: 760px) {
+    .body { grid-template-columns: 1fr; }
+    .left { border-right: 0; border-bottom: 1px solid var(--line); }
+    .grid { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="brief">
+    <h1>Painel de cozinha — alvo visual</h1>
+    <p>Tela única: recipiente, ingredientes, temperos e preview do resultado ao mesmo tempo.
+       Os três estados abaixo são saídas reais do <code style="font-family:var(--mono);font-size:12px">DishEvaluator</code>,
+       não números inventados para a maquete.</p>
+  </div>
+
+  <div class="states" role="tablist" aria-label="Estados do prato"></div>
+
+  <div class="panel">
+    <div class="titlebar"><span class="dot"></span> Cozinha <span class="x">✕</span></div>
+    <div class="body">
+      <div class="left">
+        <div class="eyebrow">Recipiente</div>
+        <div class="vessels" id="vessels"></div>
+
+        <div class="dish-name" id="dishName"></div>
+        <div class="level" id="level"></div>
+
+        <div>
+          <div class="quality-row"><span id="qualityCaption"></span><b id="qualityPct"></b></div>
+          <div class="qbar"><span id="qbarFill"></span></div>
+          <div class="factors" id="factors"></div>
+        </div>
+
+        <div class="stats" id="stats"></div>
+        <button class="cook" id="cook">Cozinhar</button>
+      </div>
+
+      <div class="right">
+        <div class="head"><span class="eyebrow">Ingredientes</span><span class="count" id="ingCount"></span></div>
+        <div class="grid" id="ingGrid"></div>
+        <div class="head" style="margin-top:4px"><span class="eyebrow">Temperos</span><span class="count" id="seaCount"></span></div>
+        <div class="grid" id="seaGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+// Catálogo espelhando Content/SampleContent.cs
+const ING = [
+  {id:"ovo",       name:"Ovo",       tint:"#f2c94c", stock:40},
+  {id:"bacon",     name:"Bacon",     tint:"#c65f5f", stock:40},
+  {id:"queijo",    name:"Queijo",    tint:"#e8d18a", stock:40},
+  {id:"brocolis",  name:"Brócolis",  tint:"#4f8f4a", stock:40},
+  {id:"tomate",    name:"Tomate",    tint:"#d9583f", stock:40},
+  {id:"cogumelo",  name:"Cogumelo",  tint:"#9c8271", stock:40},
+  {id:"batata",    name:"Batata",    tint:"#c9a86a", stock:40},
+  {id:"cebolinha", name:"Cebolinha", tint:"#6fbf5e", stock:40},
+];
+const SEA = [
+  {id:"sal",     name:"Sal",     tint:"#e6e6e6", stock:25},
+  {id:"pimenta", name:"Pimenta", tint:"#6b5344", stock:25},
+  {id:"acucar",  name:"Açúcar",  tint:"#f5f0dc", stock:25},
+  {id:"vinagre", name:"Vinagre", tint:"#d6c07a", stock:25},
+  {id:"ervas",   name:"Ervas",   tint:"#55803f", stock:25},
+];
+const VESSELS = [
+  {id:"frigideira", name:"Frigideira", tint:"#8a8a8a"},
+  {id:"panela",     name:"Panela",     tint:"#6f7a8a"},
+  {id:"tigela",     name:"Tigela",     tint:"#b0a48c"},
+];
+
+// Saídas reais do avaliador (nível 10, frigideira). Ver Tools/BalanceCheck.cs
+const STATES = [
+  {
+    tab:"Sólido", pct:"82%", vessel:"frigideira", level:10,
+    dish:{ovo:15, bacon:10, sal:2, pimenta:1},
+    name:"Fritada de ovo com bacon", anchor:false,
+    quality:.816, dominant:"Salgado",
+    factors:{tempero:1.00, equilíbrio:1.00, harmonia:1.00, variedade:.82, frescor:1.00},
+    stats:{Fome:"43.0", Sede:"0.0", Calorias:"750", Proteína:"55.0", Gordura:"57.0",
+           "Carbo.":"1.5", Ânimo:"+18.6", Tédio:"16.7", Peso:"0.25"},
+    note:"Dois grupos alimentares apenas — ovo e carne. O fator <b>variedade</b> em 82% é o único que segura a nota, e é exatamente o que o painel precisa deixar visível: o jogador aprende sozinho que falta um vegetal, sem tutorial."
+  },
+  {
+    tab:"Âncora", pct:"100%", vessel:"frigideira", level:10,
+    dish:{ovo:20, queijo:8, cebolinha:4, sal:2, pimenta:1},
+    name:"Omelete de Queijo", anchor:true,
+    quality:1.0, dominant:"Salgado",
+    factors:{tempero:1.00, equilíbrio:.96, harmonia:1.00, variedade:1.00, frescor:1.00},
+    stats:{Fome:"42.8", Sede:"0.0", Calorias:"613", Proteína:"44.0", Gordura:"46.4",
+           "Carbo.":"2.0", Ânimo:"+26.0", Tédio:"25.0", Peso:"0.30"},
+    note:"Três grupos, tempero na janela, e o conjunto bate uma <b>RecipeAnchor</b>: o prato ganha nome próprio e a estrela. Note o produto dos fatores dando 0.96 e a nota final em 100% — o bônus de 1.25× da âncora estoura o teto e é aparado."
+  },
+  {
+    tab:"Sal demais", pct:"1%", vessel:"frigideira", level:10,
+    dish:{ovo:20, sal:12},
+    name:"Fritada de ovo", anchor:false,
+    quality:.0125, dominant:"Salgado",
+    factors:{tempero:.31, equilíbrio:.08, harmonia:1.00, variedade:.50, frescor:1.00},
+    stats:{Fome:"28.0", Sede:"0.0", Calorias:"280", Proteína:"24.0", Gordura:"20.0",
+           "Carbo.":"2.0", Ânimo:"-13.5", Tédio:"0.2", Peso:"0.21"},
+    note:"Qualidade é o <b>produto</b> dos cinco fatores, não a média: tempero em 31% e equilíbrio no piso de 8% afundam o prato inteiro, mesmo com harmonia e frescor perfeitos. O <b>Ânimo</b> negativo mostra que comer isso piora o humor do Sim."
+  },
+];
+
+const F_ORDER = ["tempero","equilíbrio","harmonia","variedade","frescor"];
+const STAT_ORDER = ["Fome","Sede","Calorias","Proteína","Gordura","Carbo.","Ânimo","Tédio","Peso"];
+const SIGNED = new Set(["Ânimo","Tédio","Fome","Sede"]);
+
+const qColor = q => q < .35 ? "var(--bad)" : q < .70 ? "var(--mid)" : "var(--good)";
+const el = id => document.getElementById(id);
+
+function slot(item, units, slotsFull) {
+  const inDish = units > 0;
+  const canAdd = inDish || !slotsFull;
+  return `<div class="slot ${inDish ? "in" : ""} ${canAdd ? "" : "off"}">
+    <div class="icon" style="background:${item.tint}"></div>
+    <div class="name">${item.name}</div>
+    <div class="units">${inDish ? units : "–"}</div>
+    <div class="steps">
+      ${inDish ? '<button type="button" aria-label="Remover uma unidade">−</button>' : ""}
+      <button type="button" aria-label="Adicionar uma unidade" ${canAdd ? "" : "disabled"}>+</button>
+    </div>
+    <div class="stock">estoque ${item.stock - units}</div>
+  </div>`;
+}
+
+function render(s) {
+  const ingUsed = ING.filter(i => s.dish[i.id]).length;
+  const seaUsed = SEA.filter(i => s.dish[i.id]).length;
+  const ingMax = 2 + Math.floor(s.level / 4);   // BaseItemDef.IngredientSlotsForLevel
+  const seaMax = 4;
+
+  el("vessels").innerHTML = VESSELS.map(v =>
+    `<button class="vessel" type="button" aria-pressed="${v.id === s.vessel}">
+       <span class="glyph" style="background:${v.tint}"></span>${v.name}
+     </button>`).join("");
+
+  el("dishName").innerHTML = s.name + (s.anchor ? ' <span class="star">★</span>' : "");
+  el("level").textContent = `Culinária Nv ${s.level} · Frigideira`;
+
+  el("qualityCaption").textContent = s.quality >= 1
+    ? "Qualidade — limitado pela perícia"
+    : `Qualidade · ${s.dominant}`;
+  el("qualityPct").textContent = Math.round(s.quality * 100) + "%";
+  el("qualityPct").style.color = qColor(s.quality);
+  el("qbarFill").style.width = Math.max(s.quality * 100, 1.5) + "%";
+  el("qbarFill").style.background = qColor(s.quality);
+
+  el("factors").innerHTML = F_ORDER.map(k => {
+    const v = s.factors[k];
+    return `<div class="factor">
+      <label>${k}</label>
+      <div class="track"><span class="${v < .7 ? "weak" : ""}" style="width:${v * 100}%"></span></div>
+      <var>${Math.round(v * 100)}</var>
+    </div>`;
+  }).join("");
+
+  el("stats").innerHTML = STAT_ORDER.map(k => {
+    const raw = s.stats[k];
+    const cls = SIGNED.has(k) ? (parseFloat(raw) < 0 ? "neg" : "pos") : "";
+    return `<div class="stat"><em>${k}</em><b class="${cls}">${raw}</b></div>`;
+  }).join("");
+
+  el("ingCount").textContent = `${ingUsed} / ${ingMax}`;
+  el("seaCount").textContent = `${seaUsed} / ${seaMax}`;
+  el("ingGrid").innerHTML = ING.map(i => slot(i, s.dish[i.id] || 0, ingUsed >= ingMax)).join("");
+  el("seaGrid").innerHTML = SEA.map(i => slot(i, s.dish[i.id] || 0, seaUsed >= seaMax)).join("");
+  el("note").innerHTML = s.note;
+}
+
+el("cook").addEventListener("click", e => e.preventDefault());
+
+const tabs = document.querySelector(".states");
+tabs.innerHTML = STATES.map((s, i) =>
+  `<button type="button" role="tab" data-i="${i}" aria-selected="${i === 0}">
+     ${s.tab}<i>${s.pct}</i>
+   </button>`).join("");
+tabs.addEventListener("click", e => {
+  const btn = e.target.closest("button[data-i]");
+  if (!btn) return;
+  tabs.querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", b === btn));
+  render(STATES[+btn.dataset.i]);
+});
+
+render(STATES[0]);
+</script>
+</body>
+</html>

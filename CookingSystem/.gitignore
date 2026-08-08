@@ -1,0 +1,16 @@
+# Godot
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+*.translation
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+.idea/
+
+# OS
+.DS_Store
