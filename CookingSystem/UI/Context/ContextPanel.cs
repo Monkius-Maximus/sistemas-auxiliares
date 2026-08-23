@@ -383,7 +383,7 @@ public partial class ContextPanel : PanelContainer
     {
         // Confirmar chega aqui só quando nenhum botão focado consumiu o Enter — que é o
         // comportamento certo: com o foco num botão, Enter aciona o botão.
-        if (@event.IsActionPressed("panel_commit")) { RunCommit(); AcceptInput(); }
+        if (@event.IsActionPressed("panel_commit")) { RunCommit(@event); AcceptInput(); }
         else if (@event.IsActionPressed("panel_close")) { RunClose(); AcceptInput(); }
         else if (@event.IsActionPressed("panel_increment")) { StartRepeat(1); AcceptInput(); }
         else if (@event.IsActionPressed("panel_decrement")) { StartRepeat(-1); AcceptInput(); }
@@ -396,11 +396,31 @@ public partial class ContextPanel : PanelContainer
     /// <summary>
     /// Confirmar e fechar ficam fora do grafo de foco: são as duas coisas que o jogador
     /// precisa alcançar de qualquer lugar do painel, sem navegar até elas.
+    ///
+    /// Com o foco numa célula que age, porém, Enter é dela: o botão focado já dispara no
+    /// <c>ui_accept</c>, e confirmar aqui também faria a ação acontecer duas vezes. A recusa
+    /// é do Enter, não do confirmar: Y no controle não é <c>ui_accept</c> e segue valendo de
+    /// onde quer que o foco esteja, que é o ponto de tirar o confirmar do grafo de foco.
     /// </summary>
-    private void RunCommit()
+    private void RunCommit(InputEvent @event)
     {
+        if (@event.IsAction("ui_accept") && FocusedCellActs()) return;
+
         var commit = Definition().Commit;
         if (commit.Enabled) commit.OnRun();
+    }
+
+    private bool FocusedCellActs()
+    {
+        if (GetViewport()?.GuiGetFocusOwner() is not Control owner || !IsAncestorOf(owner))
+            return false;
+
+        return owner switch
+        {
+            Button button => !button.Disabled,
+            PanelCell cell => cell.OnActivate is not null,
+            _ => false,
+        };
     }
 
     private void RunClose() => Definition().OnClose?.Invoke();

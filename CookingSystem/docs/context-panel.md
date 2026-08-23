@@ -95,6 +95,12 @@ Três decisões sustentam isso:
 No controle não existe mirar num alvo de 20 px: o ladrilho inteiro é focável e A/X fazem o papel
 do + e do −. Os steppers continuam existindo, e continuam sendo só do mouse.
 
+**Enter com foco numa célula que age é da célula, não do confirmar.** O botão focado já dispara
+no `ui_accept`; confirmar também ali faria a ação acontecer duas vezes. A recusa é do Enter, não
+do confirmar — Y no controle não é `ui_accept` e segue valendo de onde quer que o foco esteja,
+que é justamente o ponto de tirar o confirmar do grafo de foco. Com o foco num ladrilho de
+quantidade, que não tem ação própria, Enter confirma.
+
 ## Escrever um contexto novo
 
 Uma função pura de estado para `PanelContext`, em `UI/`. O modelo do sistema não a conhece.
