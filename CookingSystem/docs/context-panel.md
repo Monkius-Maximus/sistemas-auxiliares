@@ -60,6 +60,41 @@ projeto: `grid.dual` (duas listas com eixo de movimento — transferência, saqu
    na cozinha são as mesmas que `CookingSession.AddUnit` cobra. Exceção chegando ao jogador é
    bug de definição, não input.
 
+5. **Teclado e controle são caminhos iguais ao mouse.** Nada no painel depende de passar o
+   mouse por cima, e nada fica para o jogador adivinhar: o rodapé (`PromptBar`) mostra o que
+   a região focada aceita, na língua do último dispositivo tocado.
+
+## Navegação
+
+A unidade de travessia é a **região**, não o controle. Andar célula a célula pelo painel
+inteiro obriga o jogador a atravessar oito ingredientes para chegar aos temperos; LB/RB pulam
+o bloco, que é como ele lê a tela. Dentro da região, as setas andam célula a célula (o
+comportamento padrão do Godot).
+
+| Ação | Teclado | Controle |
+|---|---|---|
+| Trocar de região | Tab · Shift+Tab | LB · RB |
+| Escolher / usar | Enter | A |
+| +1 / −1 num slot | clique no ± · `=` · `-` | A · X (segure para repetir, acelerando) |
+| Confirmar | Enter | Y |
+| Fechar | Esc | B |
+
+Três decisões sustentam isso:
+
+- **O foco é autorado.** `PanelContext.FocusEntry` diz em que região o painel abre. Deixar o
+  engine escolher põe o jogador no primeiro nó da árvore, que nunca é o assunto da tela.
+
+- **A posição sobrevive ao redesenho.** O painel guarda `(região, índice)` em `PanelFocus`, não
+  uma referência ao nó — a definição inteira é jogada fora a cada mudança, então guardar o nó
+  guardaria um objeto morto. Sem isso, cada unidade somada devolveria o foco ao começo do painel.
+
+- **Quem repete é o painel, não a célula.** Segurar A soma uma unidade, o que reconstrói tudo e
+  destrói a célula focada; um temporizador dentro dela morreria na primeira repetição. O painel
+  resolve a célula de novo a cada passo e para sozinho quando a sessão deixa de aceitar.
+
+No controle não existe mirar num alvo de 20 px: o ladrilho inteiro é focável e A/X fazem o papel
+do + e do −. Os steppers continuam existindo, e continuam sendo só do mouse.
+
 ## Escrever um contexto novo
 
 Uma função pura de estado para `PanelContext`, em `UI/`. O modelo do sistema não a conhece.
@@ -105,6 +140,9 @@ de demonstração expõe as duas numa barra "Dev".
 - **Fonte.** O mock usa Archivo; aqui só existe a fonte padrão do Godot, então o peso
   tipográfico é aproximado por tamanho.
 - **Redesenho total.** Cada mudança reconstrói os nós do painel, como o mock reconstrói o DOM.
-  É o que mantém a definição como fonte única. O custo é perder foco de teclado/controle a
-  cada clique — se isso incomodar, o conserto é o shell reaproveitar nós, não a definição
-  virar mutável.
+  É o que mantém a definição como fonte única. O custo previsto era perder o foco a cada
+  clique; o conserto não foi reaproveitar nós — foi guardar a **posição** do foco e devolvê-la
+  depois de reconstruir. Ver "Navegação".
+- **Bulk (+5).** O mock tem um modificador para somar cinco de uma vez. Não foi portado: a
+  sessão só expõe `AddUnit`, e chamá-la cinco vezes esbarraria no teto no meio do laço. Entra
+  quando `CookingSession` ganhar uma operação de lote que saiba parar.

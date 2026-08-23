@@ -29,7 +29,8 @@ Data/      IngredientDef, BaseItemDef, RecipeAnchor, FlavorProfile, Nutrition
 Cooking/   CookingSession (estado)  ·  DishEvaluator + DishNamer (funções puras)
            → nenhuma chamada de API do Godot; testável fora do engine
 
-UI/Context/  ContextPanel, PanelContext, PanelPrimitives, PanelSkin
+UI/Context/  ContextPanel, PanelContext, PanelPrimitives, PanelSkin,
+             PanelFocus, PanelCell, PromptBar
            → o shell reutilizável: um painel para toda interação do jogo
 
 UI/        CookingContext, QuickMealContext, CookingDemo
@@ -42,6 +43,10 @@ O painel manual e o menu rápido são o **mesmo** `ContextPanel` lendo definiç�
 Sete regiões nomeadas — subject, actions, primary, secondary, preview, readout, commit — e um
 punhado de primitivos que se recombinam. Loja, bancada e baú entram como definições novas, não
 como janelas novas. O contrato está em [`docs/context-panel.md`](docs/context-panel.md).
+
+Teclado, controle e mouse são caminhos iguais: a travessia é por **região** (Tab · LB/RB), o
+ladrilho inteiro é o alvo no controle (A/X somam e tiram, segurando para repetir), e o rodapé
+mostra o que a região focada aceita. Confirmar e fechar ficam fora do grafo de foco.
 
 A regra que sustenta tudo: **o preview ao vivo e o ato de cozinhar chamam a mesma função.**
 `DishEvaluator.Evaluate` é pura, então o número que o jogador vê enquanto mexe é literalmente
@@ -120,9 +125,12 @@ Poucas de propósito — são atalhos premiados, não o conteúdo principal.
 **NPCs cozinham com este mesmo código.** Um NPC com perícia baixa produz pratos ruins porque
 tem menos slots e teto menor — não porque exista uma tabela de "pratos ruins de NPC".
 
-## Ressalva
+## Estado da verificação
 
-Não tive busca web disponível nesta sessão para conferir assinaturas da API do Godot 4.7
-contra a documentação. Os pontos que valem checar na primeira compilação:
-`Image.CreateEmpty`, `TextureRect.ExpandModeEnum`, `TextServer.OverrunBehavior` e o nome
-do stylebox `"fill"` do `ProgressBar`.
+Compila e roda em **Godot 4.7.1 mono** com o SDK .NET 8: menu rápido e painel manual, nas duas
+peles, com as etiquetas de região ligadas. Navegação por região, foco sobrevivendo ao redesenho,
+repetição ao segurar o stepper (parando sozinha no teto da sessão), confirmar por Enter e fechar
+por Esc — tudo conferido em execução, por captura headless.
+
+O `.csproj` aponta para `Godot.NET.Sdk/4.7.0`; a verificação rodou com a engine 4.7.1, que
+aceita o SDK 4.7.0 sem ajuste.

@@ -19,7 +19,9 @@ Content/   SampleContent — conteúdo de teste em código, com ícones placehol
 
 UI/Context/  O shell reutilizável, sem nada de cozinha dentro.
              PanelContext (a definição: 7 regiões) · PanelPrimitives (desenho) ·
-             ContextPanel (o painel) · PanelSkin (cores por papel). Namespace LifeSim.Ui.
+             ContextPanel (o painel) · PanelSkin (cores por papel) ·
+             PanelFocus + PanelCell (grafo de foco e célula focável) ·
+             PromptBar (legenda de botões). Namespace LifeSim.Ui.
 
 UI/        As definições de contexto deste sistema: CookingContext (painel manual) ·
            QuickMealContext (menu rápido) · DishReadout · CookingDemo. Zero estado próprio.
@@ -49,10 +51,16 @@ Cozinhar, comprar e construir devem ser definições de contexto, não janelas n
    O preview ao vivo e o ato de cozinhar chamam essa mesma função — é isso que garante
    que o número mostrado é o número recebido. Nunca criar uma "versão rápida para o preview".
 
-2. **A UI não guarda estado.** O `ContextPanel` escuta `CookingSession.Changed` e reconstrói
-   a definição inteira. Se aparecer um campo no painel que espelha algo da sessão, é bug —
-   o estado de tela que não tem dono no modelo (qual contexto está aberto, qual linha está
-   marcada no menu) fica no host que abriu a interação, nunca no painel.
+2. **A UI não guarda estado do modelo.** O `ContextPanel` escuta `CookingSession.Changed` e
+   reconstrói a definição inteira. Se aparecer um campo no painel que espelha algo da sessão,
+   é bug — o estado de tela que não tem dono no modelo (qual contexto está aberto, qual linha
+   está marcada no menu) fica no host que abriu a interação, nunca no painel.
+
+   A exceção é o **foco**: `PanelFocus` guarda `(região, índice)` dentro do painel. Não é
+   estado do modelo nem do host — é onde o cursor do jogador está *neste* painel, e morre com
+   ele. Guardá-lo no host obrigaria todo host a saber o que é uma região. Continua valendo a
+   regra de fundo: nada em `PanelFocus` espelha o modelo, e o painel nunca lê de lá para
+   decidir o que desenhar.
 
 3. **`CookingSession` é dona da despensa E do prato.** As duas quantidades mudam na mesma
    operação. Não mover o inventário para outra classe.
@@ -103,9 +111,20 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 | Conteúdo em `.tres` | `Content/SampleContent.cs` | tudo em código |
 | Primitivos `grid.dual` e `text` | `UI/Context/PanelPrimitives.cs` | no mock, sem sistema que os use |
 | Despensa que diminui ao cozinhar | `CookingDemo` | cada preparo abre uma sessão nova |
+| Bulk +5 no stepper | `CookingSession` | falta operação de lote que saiba parar no teto |
+| Segundo contexto real (loja/bancada) | não existe | o shell aguenta; falta o sistema por trás |
 
 NPCs devem cozinhar com este mesmo código: perícia baixa produz prato ruim por ter menos
 slots e teto menor, não por uma tabela separada de "pratos de NPC".
+
+## Navegação do painel
+
+Teclado e controle são caminhos iguais ao mouse — ver `docs/context-panel.md`. As ações vivem
+no `project.godot` com o prefixo `panel_`: `panel_region_next/prev` (Tab · LB/RB),
+`panel_increment/decrement` (`=`/`-` · A/X), `panel_commit` (Enter · Y), `panel_close` (Esc · B).
+
+A travessia é **por região**, não por controle. Confirmar e fechar ficam fora do grafo de foco:
+são as duas coisas que o jogador precisa alcançar de qualquer lugar do painel.
 
 ## Estilo
 

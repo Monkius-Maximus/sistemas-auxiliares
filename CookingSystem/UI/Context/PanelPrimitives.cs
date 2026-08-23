@@ -5,21 +5,27 @@ namespace LifeSim.Ui;
 
 /// <summary>
 /// Desenha os primitivos. Cada função aqui transforma um pedaço de definição em nós do
-/// Godot e nada mais: não lê estado, não decide regra, não guarda referência. Adicionar
-/// um sistema ao jogo não deveria exigir tocar neste arquivo — só adicionar um primitivo
-/// deveria.
+/// Godot e nada mais: não lê estado e não decide regra. Adicionar um sistema ao jogo não
+/// deveria exigir tocar neste arquivo — só adicionar um primitivo deveria.
+///
+/// A única coisa que sai daqui além de nós é o registro das células focáveis em
+/// <see cref="PanelFocus"/>: o primitivo sabe quais dos seus nós o jogador pode focar e em
+/// que ordem, e ninguém mais sabe. Quem guarda essa lista é o painel.
 /// </summary>
 public static class PanelPrimitives
 {
     private const int TileMinWidth = 112;
+
+    /// <summary>Piso de alvo apontável, em px a 1080p. Vale para o que se mira com o cursor.</summary>
+    private const int MinHitTarget = 44;
     private const int SwatchSize = 30;
     private const int ArtSize = 96;
 
-    public static Control Build(RegionBody body, PanelSkin skin) => body switch
+    public static Control Build(RegionBody body, PanelSkin skin, PanelFocus focus) => body switch
     {
-        Picker picker => BuildPicker(picker, skin),
-        VerbList verbs => BuildVerbs(verbs, skin),
-        SlotGrid grid => BuildSlotGrid(grid, skin),
+        Picker picker => BuildPicker(picker, skin, focus),
+        VerbList verbs => BuildVerbs(verbs, skin, focus),
+        SlotGrid grid => BuildSlotGrid(grid, skin, focus),
         Checklist checklist => BuildChecklist(checklist, skin),
         _ => throw new ArgumentOutOfRangeException(
             nameof(body), $"Primitivo sem desenho: {body?.GetType().Name ?? "null"}."),
@@ -29,7 +35,7 @@ public static class PanelPrimitives
     // Primitivos de região
     // ------------------------------------------------------------------
 
-    private static Control BuildPicker(Picker picker, PanelSkin skin)
+    private static Control BuildPicker(Picker picker, PanelSkin skin, PanelFocus focus)
     {
         var column = new VBoxContainer();
         column.AddThemeConstantOverride("separation", 6);
@@ -58,6 +64,7 @@ public static class PanelPrimitives
             // Opacidade separa o escolhido dos demais sem gastar uma segunda cor.
             button.Modulate = option.Selected ? Colors.White : new Color(1, 1, 1, 0.55f);
             grid.AddChild(button);
+            focus.Register(button);
         }
 
         if (picker.Note.Length > 0)
@@ -66,22 +73,26 @@ public static class PanelPrimitives
         return column;
     }
 
-    private static Control BuildVerbs(VerbList verbs, PanelSkin skin)
+    private static Control BuildVerbs(VerbList verbs, PanelSkin skin, PanelFocus focus)
     {
         var column = new VBoxContainer();
         column.AddThemeConstantOverride("separation", 4);
 
         foreach (var verb in verbs.Verbs)
         {
-            var button = FlatButton(skin,
-                verb.Active ? skin.AccentDeep : skin.Cell,
-                verb.Active ? skin.Accent : skin.LineSoft);
-            button.Disabled = verb.Locked;
-            button.CustomMinimumSize = new Vector2(0, 44);
             var captured = verb;
-            button.Pressed += () => captured.OnUse();
+            var cell = new PanelCell
+            {
+                RingColor = skin.Accent,
+                CustomMinimumSize = new Vector2(0, MinHitTarget),
+                Normal = Box(verb.Active ? skin.AccentDeep : skin.Cell,
+                             verb.Active ? skin.Accent : skin.LineSoft, 9, 8),
+                Hover = Box(verb.Active ? skin.AccentDeep : skin.Cell, skin.Accent, 9, 8),
+                OnActivate = verb.Locked ? null : () => captured.OnUse(),
+            };
+            if (verb.Locked) cell.FocusMode = Control.FocusModeEnum.None;
 
-            var content = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+            var content = new VBoxContainer();
             content.AddThemeConstantOverride("separation", 3);
 
             var head = new HBoxContainer();
@@ -90,47 +101,62 @@ public static class PanelPrimitives
             head.AddChild(Expanding(Text(verb.Name, 12, verb.Locked ? skin.Mute : skin.Ink)));
             head.AddChild(Text(verb.Skill, 9, skin.Mute));
             content.AddChild(head);
-            content.AddChild(Text(verb.Note, 10, skin.Mute));
 
-            Fill(button, content, inset: 9);
-            button.Modulate = verb.Locked ? new Color(1, 1, 1, 0.5f) : Colors.White;
-            column.AddChild(button);
+            // A nota quebra linha e a célula cresce junto. Verbo trancado é conteúdo: a
+            // linha que explica a perícia que falta é a parte que o jogador precisa ler.
+            content.AddChild(Wrapped(verb.Note, 10, skin.Mute));
+
+            cell.AddChild(content);
+            cell.Modulate = verb.Locked ? new Color(1, 1, 1, 0.5f) : Colors.White;
+            column.AddChild(cell);
+            focus.Register(cell);
         }
 
         return column;
     }
 
-    private static Control BuildSlotGrid(SlotGrid slotGrid, PanelSkin skin)
+    private static Control BuildSlotGrid(SlotGrid slotGrid, PanelSkin skin, PanelFocus focus)
     {
         var grid = new GridContainer { Columns = slotGrid.Columns };
         grid.AddThemeConstantOverride("h_separation", 5);
         grid.AddThemeConstantOverride("v_separation", 5);
 
         foreach (var slot in slotGrid.Slots)
-            grid.AddChild(slotGrid.Mode == SlotGridMode.Quantity
+        {
+            var tile = slotGrid.Mode == SlotGridMode.Quantity
                 ? QuantityTile(slot, skin)
-                : SelectTile(slot, skin));
+                : SelectTile(slot, skin);
+            grid.AddChild(tile);
+            focus.Register(tile);
+        }
 
         return grid;
     }
 
     /// <summary>
     /// Ladrilho com steppers. A quantidade é a decisão do jogador, então ela custa um
-    /// clique por unidade e não um arrasto — e o ladrilho inteiro não é clicável, para
-    /// que os únicos alvos sejam o + e o −.
+    /// clique por unidade e não um arrasto — e o corpo do ladrilho não é clicável, para
+    /// que os únicos alvos de mouse sejam o + e o −.
+    ///
+    /// No controle não há como mirar num alvo de 20px: lá o alvo é o ladrilho inteiro, que
+    /// é focável, e A/X fazem o papel do + e do −.
     /// </summary>
     private static Control QuantityTile(PanelSlot slot, PanelSkin skin)
     {
         bool inDish = slot.Quantity > 0;
 
-        var tile = new PanelContainer
+        var tile = new PanelCell
         {
             CustomMinimumSize = new Vector2(TileMinWidth, 0),
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            RingColor = skin.Accent,
+            CanIncrement = slot.Enabled,
+            CanDecrement = inDish,
+            OnAdd = slot.OnAdd,
+            OnRemove = slot.OnRemove,
+            Normal = Box(inDish ? skin.AccentDeep : skin.Cell,
+                         inDish ? skin.Accent : skin.LineSoft, 7, 6),
         };
-        tile.AddThemeStyleboxOverride("panel", Box(
-            inDish ? skin.AccentDeep : skin.Cell,
-            inDish ? skin.Accent : skin.LineSoft, 7, 6));
         tile.Modulate = slot.Enabled || inDish ? Colors.White : new Color(1, 1, 1, 0.4f);
 
         var column = new VBoxContainer();
@@ -318,7 +344,7 @@ public static class PanelPrimitives
         return column;
     }
 
-    public static Control BuildCommit(CommitAction commit, PanelSkin skin)
+    public static Control BuildCommit(CommitAction commit, PanelSkin skin, PanelFocus focus)
     {
         var column = new VBoxContainer();
         column.AddThemeConstantOverride("separation", 7);
@@ -336,6 +362,7 @@ public static class PanelPrimitives
         Fill(button, content, inset: 14);
 
         column.AddChild(button);
+        focus.Register(button);
         column.AddChild(Wrapped(commit.Hint, 11, commit.Enabled ? skin.Mute : skin.Accent));
         return column;
     }
@@ -402,7 +429,7 @@ public static class PanelPrimitives
         button.AddThemeStyleboxOverride("hover", Box(background, skin.Accent));
         button.AddThemeStyleboxOverride("pressed", Box(skin.AccentDeep, skin.Accent));
         button.AddThemeStyleboxOverride("disabled", Box(skin.Cell, skin.LineSoft));
-        button.AddThemeStyleboxOverride("focus", new StyleBoxEmpty());
+        button.AddThemeStyleboxOverride("focus", FocusRing(skin));
         button.AddThemeColorOverride("font_color", skin.Ink);
         button.AddThemeColorOverride("font_hover_color", skin.Ink);
         button.AddThemeColorOverride("font_pressed_color", skin.Ink);
@@ -410,9 +437,24 @@ public static class PanelPrimitives
         return button;
     }
 
+    /// <summary>
+    /// O anel de foco. Desenhado por fora da caixa — por dentro ele desapareceria contra o
+    /// preenchimento de acento de um ladrilho já selecionado, que é justamente onde o
+    /// jogador de controle mais precisa enxergar onde está.
+    /// </summary>
+    private static StyleBoxFlat FocusRing(PanelSkin skin)
+    {
+        var ring = new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0), BorderColor = skin.Accent };
+        ring.SetBorderWidthAll(2);
+        ring.SetExpandMarginAll(3);
+        return ring;
+    }
+
     private static Button StepButton(string text, PanelSkin skin, Color color)
     {
         var button = FlatButton(skin, skin.PanelAlt, skin.LineSoft);
+        // O stepper não entra no grafo de foco: quem é focável é o ladrilho que o contém.
+        button.FocusMode = Control.FocusModeEnum.None;
         button.Text = text;
         button.Alignment = HorizontalAlignment.Center;
         button.CustomMinimumSize = new Vector2(0, 20);

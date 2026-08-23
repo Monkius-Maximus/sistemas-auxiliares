@@ -34,6 +34,13 @@ public sealed class PanelContext
     /// <summary>Fecha a interação. O ✕ do cabeçalho só existe quando isto existe.</summary>
     public Action OnClose { get; init; }
 
+    /// <summary>
+    /// Onde o foco pousa ao abrir. Autorado de propósito: o menu rápido quer o jogador na
+    /// lista de pratos, o painel manual quer ele nos ingredientes. Deixar o engine escolher
+    /// põe o foco no primeiro nó da árvore, que nunca é o assunto da tela.
+    /// </summary>
+    public PanelRegionId FocusEntry { get; init; } = PanelRegionId.Primary;
+
     /// <summary>Em que se age: recipiente, vendedor, bancada, contêiner. Nulo quando não há escolha.</summary>
     public PanelRegion Subject { get; init; }
 

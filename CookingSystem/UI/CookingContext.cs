@@ -38,6 +38,7 @@ public static class CookingContext
             Crumb = $"fogão · culinária nv {session.CookingLevel}",
             Width = PanelWidth,
             OnClose = onClose,
+            FocusEntry = PanelRegionId.Primary,
 
             Subject = new PanelRegion
             {

@@ -46,6 +46,7 @@ public static class QuickMealContext
             Title = "O que preparar?",
             Crumb = "fogão · menu rápido",
             Width = PanelWidth,
+            FocusEntry = PanelRegionId.Primary,
 
             Actions = new PanelRegion
             {
