@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_oeyai"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_pxj1h"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_8fmgj"]
+
+[sub_resource type="Resource" id="Resource_1ggvm"]
+script = ExtResource("1_oeyai")
+Sweet = 0.1
+Umami = 0.35
+
+[sub_resource type="Resource" id="Resource_eifkb"]
+script = ExtResource("2_pxj1h")
+Calories = 14.0
+Protein = 1.2
+Lipids = 1.0
+Carbs = 0.1
+Hunger = 1.4
+
+[resource]
+script = ExtResource("3_8fmgj")
+Id = "ovo"
+DisplayName = "Ovo"
+Group = 1
+Nutrition = SubResource("Resource_eifkb")
+Flavor = SubResource("Resource_1ggvm")
+PricePerUnit = 2
+TintColor = Color(0.9490196, 0.7882353, 0.29803923, 1)

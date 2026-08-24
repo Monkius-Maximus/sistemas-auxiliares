@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-namespace LifeSim.Ui;
+namespace ContextUi;
 
 /// <summary>
 /// A definição de uma interação: o que o painel mostra quando o jogador clica no fogão,

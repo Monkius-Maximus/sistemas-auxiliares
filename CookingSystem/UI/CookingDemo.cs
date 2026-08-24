@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
-using LifeSim.Ui;
+using ContextUi;
 
 namespace LifeSim.Cooking;
 
@@ -35,9 +35,9 @@ public partial class CookingDemo : Control
 
     public override void _Ready()
     {
-        _pantry = SampleContent.Pantry();
-        _bases = SampleContent.Bases();
-        _anchors = SampleContent.Anchors();
+        _pantry = ContentLibrary.StartingPantry();
+        _bases = ContentLibrary.Bases();
+        _anchors = ContentLibrary.Anchors();
         OpenQuickMenu();
     }
 

@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_8bfuq"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_akpjy"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_yt2u7"]
+
+[sub_resource type="Resource" id="Resource_gd3fk"]
+script = ExtResource("1_8bfuq")
+Salty = 1.0
+
+[sub_resource type="Resource" id="Resource_up8dl"]
+script = ExtResource("2_akpjy")
+
+[resource]
+script = ExtResource("3_yt2u7")
+Id = "sal"
+DisplayName = "Sal"
+IsSeasoning = true
+WeightPerUnit = 0.001
+Nutrition = SubResource("Resource_up8dl")
+Flavor = SubResource("Resource_gd3fk")
+Potency = 4.0
+MaxUnitsInDish = 12
+TintColor = Color(0.9019608, 0.9019608, 0.9019608, 1)

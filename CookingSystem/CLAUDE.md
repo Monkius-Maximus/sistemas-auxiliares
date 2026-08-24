@@ -15,13 +15,16 @@ Cooking/   Modelo. Nenhuma chamada de API do Godot.
            CookedDish (resultado imutável) · IngredientStack ·
            QuickMealPlanner + QuickMealOption (menu rápido, puros)
 
-Content/   SampleContent — conteúdo de teste em código, com ícones placeholder.
+Content/   O conteúdo, em .tres: Ingredients/ · Bases/ · Anchors/.
+           ContentLibrary lê as pastas — ingrediente novo é arquivo novo, não linha de C#.
 
-UI/Context/  O shell reutilizável, sem nada de cozinha dentro.
-             PanelContext (a definição: 7 regiões) · PanelPrimitives (desenho) ·
-             ContextPanel (o painel) · PanelSkin (cores por papel) ·
-             PanelFocus + PanelCell (grafo de foco e célula focável) ·
-             PromptBar (legenda de botões). Namespace LifeSim.Ui.
+addons/context_panel/
+           O shell reutilizável, sem nada de cozinha dentro. Namespace ContextUi,
+           sem dependência deste projeto: é o mesmo painel que vai para os outros jogos.
+           PanelContext (a definição: 7 regiões) · PanelPrimitives (desenho) ·
+           ContextPanel (o painel) · PanelSkin (cores por papel) ·
+           PanelFocus + PanelCell (grafo de foco e célula focável) · PromptBar.
+           Contrato próprio em addons/context_panel/README.md.
 
 UI/        As definições de contexto deste sistema: CookingContext (painel manual) ·
            QuickMealContext (menu rápido) · DishReadout · CookingDemo. Zero estado próprio.
@@ -107,15 +110,30 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 | Prato como item persistente | `CookingSession.Cook` retorna e descarta | falta criar o item |
 | Moodlet / motivos ao comer | `CookedDish.UnhappinessRelief` etc. | fórmulas prontas, sem consumidor |
 | Reação por traço de personalidade | não existe | usar `Group` + `DominantAxis` |
-| Ícones de verdade | `IngredientDef.Icon` | placeholders coloridos |
-| Conteúdo em `.tres` | `Content/SampleContent.cs` | tudo em código |
-| Primitivos `grid.dual` e `text` | `UI/Context/PanelPrimitives.cs` | no mock, sem sistema que os use |
+| Ícones de verdade | `IngredientDef.Icon` | campo pronto no `.tres`, sem arte — desenha o `TintColor` |
+| Primitivos `grid.dual` e `text` | `addons/context_panel/PanelPrimitives.cs` | no mock, sem sistema que os use |
 | Despensa que diminui ao cozinhar | `CookingDemo` | cada preparo abre uma sessão nova |
 | Bulk +5 no stepper | `CookingSession` | falta operação de lote que saiba parar no teto |
-| Segundo contexto real (loja/bancada) | não existe | o shell aguenta; falta o sistema por trás |
+| Segundo contexto real (loja/bancada) | não existe | o shell aguenta e já é addon; falta o sistema por trás |
+| Stack de modificadores | não existe | traço/perícia mexendo no avaliador sem ele saber que existem |
 
 NPCs devem cozinhar com este mesmo código: perícia baixa produz prato ruim por ter menos
 slots e teto menor, não por uma tabela separada de "pratos de NPC".
+
+## Conteúdo
+
+Ingredientes, recipientes e âncoras vivem em `Content/**/*.tres`. **Adicionar conteúdo é
+adicionar arquivo** — `ContentLibrary` varre as pastas, e não existe lista para registrar o
+arquivo novo. É o mesmo trato que sustenta uma década de DLC em jogos data-driven: o motor
+define os substantivos, o conteúdo é combinação deles.
+
+A biblioteca não interpreta nada — só carrega e ordena por nome exibido. Toda regra continua
+em `Cooking/`, em C#, testável pelo `BalanceCheck`. Lógica em arquivo de dados é o passo que
+esses jogos pagam caro (depuração sem tipos, avaliação de script no late-game) e que este
+sistema não precisa dar: são poucos avaliadores e profundos, não milhares de combinações.
+
+Quando um traço de personalidade ou uma perícia precisar mexer no resultado, o caminho é um
+**stack de modificadores** que o conteúdo alimenta e o avaliador soma — não script no `.tres`.
 
 ## Navegação do painel
 

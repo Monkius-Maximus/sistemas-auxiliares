@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeAnchor" format=3]
+
+[ext_resource type="Script" path="res://Data/RecipeAnchor.cs" id="1_sdngb"]
+
+[resource]
+script = ExtResource("1_sdngb")
+DishName = "Omelete de Queijo"
+BaseItemId = "frigideira"
+Portions = Dictionary[String, int]({
+"cebolinha": 4,
+"ovo": 20,
+"pimenta": 1,
+"queijo": 8,
+"sal": 2
+})
+ForbiddenIngredientIds = PackedStringArray("acucar", "vinagre")

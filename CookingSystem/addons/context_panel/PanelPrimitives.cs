@@ -1,7 +1,7 @@
 using System;
 using Godot;
 
-namespace LifeSim.Ui;
+namespace ContextUi;
 
 /// <summary>
 /// Desenha os primitivos. Cada função aqui transforma um pedaço de definição em nós do

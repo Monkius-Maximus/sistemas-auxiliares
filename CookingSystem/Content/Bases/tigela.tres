@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="BaseItemDef" format=3]
+
+[ext_resource type="Script" path="res://Data/BaseItemDef.cs" id="1_6udpt"]
+
+[resource]
+script = ExtResource("1_6udpt")
+Id = "tigela"
+DisplayName = "Tigela"
+FormName = "Salada"
+BaseIngredientSlots = 3
+AllowedGroups = Array[int]([5, 6, 4, 8])
+TintColor = Color(0.6901961, 0.6431373, 0.54901963, 1)

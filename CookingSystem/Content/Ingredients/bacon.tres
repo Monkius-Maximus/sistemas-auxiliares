@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_x63m5"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_uvbe2"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_02fw8"]
+
+[sub_resource type="Resource" id="Resource_tr7aj"]
+script = ExtResource("1_x63m5")
+Salty = 0.45
+Umami = 0.55
+
+[sub_resource type="Resource" id="Resource_hlq3d"]
+script = ExtResource("2_uvbe2")
+Calories = 54.0
+Protein = 3.7
+Lipids = 4.2
+Hunger = 2.2
+
+[resource]
+script = ExtResource("3_02fw8")
+Id = "bacon"
+DisplayName = "Bacon"
+Group = 2
+Nutrition = SubResource("Resource_hlq3d")
+Flavor = SubResource("Resource_tr7aj")
+PricePerUnit = 6
+TintColor = Color(0.7764706, 0.37254903, 0.37254903, 1)

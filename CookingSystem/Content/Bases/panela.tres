@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BaseItemDef" format=3]
+
+[ext_resource type="Script" path="res://Data/BaseItemDef.cs" id="1_qd1q2"]
+
+[resource]
+script = ExtResource("1_qd1q2")
+Id = "panela"
+DisplayName = "Panela"
+Method = 2
+FormName = "Sopa"
+BaseIngredientSlots = 3
+SeasoningSlots = 3
+AllowedGroups = Array[int]([2, 5, 7, 8])
+TintColor = Color(0.43529412, 0.47843137, 0.5411765, 1)

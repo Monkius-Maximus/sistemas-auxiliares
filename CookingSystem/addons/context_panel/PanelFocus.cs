@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-namespace LifeSim.Ui;
+namespace ContextUi;
 
 /// <summary>
 /// As sete regiões, nomeadas. A travessia por controle de teclado do Godot anda célula a

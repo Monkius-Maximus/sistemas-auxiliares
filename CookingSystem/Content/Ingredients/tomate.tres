@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_fqafu"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_0ovsg"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_2g8ek"]
+
+[sub_resource type="Resource" id="Resource_l81d4"]
+script = ExtResource("1_fqafu")
+Sweet = 0.2
+Sour = 0.35
+Umami = 0.25
+
+[sub_resource type="Resource" id="Resource_chtev"]
+script = ExtResource("2_0ovsg")
+Calories = 1.8
+Protein = 0.09
+Carbs = 0.4
+Hunger = 0.4
+Thirst = 0.8
+
+[resource]
+script = ExtResource("3_2g8ek")
+Id = "tomate"
+DisplayName = "Tomate"
+Group = 5
+Nutrition = SubResource("Resource_chtev")
+Flavor = SubResource("Resource_l81d4")
+PricePerUnit = 2
+TintColor = Color(0.8509804, 0.34509805, 0.24705882, 1)

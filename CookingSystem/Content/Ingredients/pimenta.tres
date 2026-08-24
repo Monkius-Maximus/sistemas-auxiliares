@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_y77nb"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_n6x6r"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_nuyr5"]
+
+[sub_resource type="Resource" id="Resource_7paal"]
+script = ExtResource("1_y77nb")
+Bitter = 0.2
+Spicy = 1.0
+
+[sub_resource type="Resource" id="Resource_eolb2"]
+script = ExtResource("2_n6x6r")
+
+[resource]
+script = ExtResource("3_nuyr5")
+Id = "pimenta"
+DisplayName = "Pimenta"
+IsSeasoning = true
+WeightPerUnit = 0.001
+Nutrition = SubResource("Resource_eolb2")
+Flavor = SubResource("Resource_7paal")
+Potency = 3.5
+MaxUnitsInDish = 12
+TintColor = Color(0.41960785, 0.3254902, 0.26666668, 1)

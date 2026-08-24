@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-namespace LifeSim.Ui;
+namespace ContextUi;
 
 /// <summary>
 /// O shell. Um painel para todas as interações do jogo: ele lê uma <see cref="PanelContext"/>,

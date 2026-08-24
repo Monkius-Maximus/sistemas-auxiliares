@@ -37,9 +37,9 @@ public partial class BalanceCheck : SceneTree
 
     public override void _Initialize()
     {
-        var pantry = SampleContent.Pantry();
-        var bases = SampleContent.Bases().ToDictionary(b => b.Id, b => b);
-        var anchors = SampleContent.Anchors();
+        var pantry = ContentLibrary.StartingPantry();
+        var bases = ContentLibrary.Bases().ToDictionary(b => b.Id, b => b);
+        var anchors = ContentLibrary.Anchors();
         var defs = pantry.Keys.ToDictionary(d => d.Id, d => d);
 
         GD.Print($"{"caso",-30}{"nota",6}{"temp",7}{"equi",7}{"harm",7}{"vari",7}{"fres",7}  esperado");

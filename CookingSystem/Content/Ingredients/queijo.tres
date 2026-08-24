@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_2kfg6"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_qqqex"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_3e8sr"]
+
+[sub_resource type="Resource" id="Resource_cdbhh"]
+script = ExtResource("1_2kfg6")
+Salty = 0.35
+Sour = 0.1
+Umami = 0.4
+
+[sub_resource type="Resource" id="Resource_b65r0"]
+script = ExtResource("2_qqqex")
+Calories = 40.0
+Protein = 2.5
+Lipids = 3.3
+Hunger = 1.8
+
+[resource]
+script = ExtResource("3_3e8sr")
+Id = "queijo"
+DisplayName = "Queijo"
+Group = 4
+Nutrition = SubResource("Resource_b65r0")
+Flavor = SubResource("Resource_cdbhh")
+PricePerUnit = 5
+TintColor = Color(0.9098039, 0.81960785, 0.5411765, 1)

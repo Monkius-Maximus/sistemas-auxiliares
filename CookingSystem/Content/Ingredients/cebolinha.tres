@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_wij1w"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_ifaeo"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_tvfl1"]
+
+[sub_resource type="Resource" id="Resource_2jhfk"]
+script = ExtResource("1_wij1w")
+Sweet = 0.05
+Bitter = 0.2
+Spicy = 0.15
+
+[sub_resource type="Resource" id="Resource_mef4g"]
+script = ExtResource("2_ifaeo")
+Calories = 3.2
+Hunger = 0.1
+
+[resource]
+script = ExtResource("3_tvfl1")
+Id = "cebolinha"
+DisplayName = "Cebolinha"
+Group = 8
+Nutrition = SubResource("Resource_mef4g")
+Flavor = SubResource("Resource_2jhfk")
+TintColor = Color(0.43529412, 0.7490196, 0.36862746, 1)

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RecipeAnchor" format=3]
+
+[ext_resource type="Script" path="res://Data/RecipeAnchor.cs" id="1_acwst"]
+
+[resource]
+script = ExtResource("1_acwst")
+DishName = "Salada Caprese"
+BaseItemId = "tigela"
+Portions = Dictionary[String, int]({
+"ervas": 2,
+"queijo": 10,
+"sal": 1,
+"tomate": 20
+})
+ForbiddenIngredientIds = PackedStringArray("acucar")

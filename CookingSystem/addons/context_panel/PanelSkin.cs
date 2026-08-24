@@ -1,6 +1,6 @@
 using Godot;
 
-namespace LifeSim.Ui;
+namespace ContextUi;
 
 /// <summary>
 /// A pele do painel, por papel semântico. Nenhuma definição de contexto fala de cor: ela

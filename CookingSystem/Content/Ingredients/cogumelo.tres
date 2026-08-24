@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_23r3h"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_6qvoa"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_ifmyl"]
+
+[sub_resource type="Resource" id="Resource_rdu6g"]
+script = ExtResource("1_23r3h")
+Bitter = 0.12
+Umami = 0.6
+
+[sub_resource type="Resource" id="Resource_g5fof"]
+script = ExtResource("2_6qvoa")
+Calories = 2.2
+Protein = 0.31
+Hunger = 0.5
+Thirst = 0.2
+
+[resource]
+script = ExtResource("3_ifmyl")
+Id = "cogumelo"
+DisplayName = "Cogumelo"
+Group = 5
+Nutrition = SubResource("Resource_g5fof")
+Flavor = SubResource("Resource_rdu6g")
+PricePerUnit = 3
+TintColor = Color(0.6117647, 0.50980395, 0.44313726, 1)

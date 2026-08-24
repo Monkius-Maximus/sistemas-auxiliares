@@ -1,6 +1,6 @@
 # Painel por contexto
 
-Um painel para todas as interações do jogo. O shell (`UI/Context/ContextPanel.cs`) não conhece
+Um painel para todas as interações do jogo. O shell (`addons/context_panel/`) não conhece
 cozinha, loja nem bancada: ele lê uma **definição de contexto**, liga cada primitivo à sua
 região e desenha. Um sistema novo é uma definição nova e, no máximo, um primitivo novo —
 nunca uma janela nova.

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RecipeAnchor" format=3]
+
+[ext_resource type="Script" path="res://Data/RecipeAnchor.cs" id="1_1uanq"]
+
+[resource]
+script = ExtResource("1_1uanq")
+DishName = "Caldo Verde da Casa"
+BaseItemId = "panela"
+Portions = Dictionary[String, int]({
+"batata": 25,
+"cebolinha": 5,
+"cogumelo": 10,
+"ervas": 2,
+"sal": 3
+})
+ForbiddenIngredientIds = PackedStringArray("acucar")

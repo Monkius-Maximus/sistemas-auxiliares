@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_d0dfc"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_lb2ew"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_c6eyt"]
+
+[sub_resource type="Resource" id="Resource_uc3n8"]
+script = ExtResource("1_d0dfc")
+Sweet = 0.12
+Bitter = 0.35
+
+[sub_resource type="Resource" id="Resource_1jygl"]
+script = ExtResource("2_lb2ew")
+Calories = 3.4
+Protein = 0.28
+Carbs = 0.7
+Hunger = 0.6
+Thirst = 0.3
+
+[resource]
+script = ExtResource("3_c6eyt")
+Id = "brocolis"
+DisplayName = "Brócolis"
+Group = 5
+Nutrition = SubResource("Resource_1jygl")
+Flavor = SubResource("Resource_uc3n8")
+PricePerUnit = 2
+TintColor = Color(0.30980393, 0.56078434, 0.2901961, 1)

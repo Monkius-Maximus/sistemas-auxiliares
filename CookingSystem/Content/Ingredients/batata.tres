@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="IngredientDef" format=3]
+
+[ext_resource type="Script" path="res://Data/FlavorProfile.cs" id="1_wdio4"]
+[ext_resource type="Script" path="res://Data/Nutrition.cs" id="2_eij70"]
+[ext_resource type="Script" path="res://Data/IngredientDef.cs" id="3_gske5"]
+
+[sub_resource type="Resource" id="Resource_l8plj"]
+script = ExtResource("1_wdio4")
+Sweet = 0.12
+Umami = 0.08
+
+[sub_resource type="Resource" id="Resource_483i6"]
+script = ExtResource("2_eij70")
+Calories = 7.7
+Protein = 0.2
+Carbs = 1.7
+Hunger = 1.6
+
+[resource]
+script = ExtResource("3_gske5")
+Id = "batata"
+DisplayName = "Batata"
+Group = 7
+Nutrition = SubResource("Resource_483i6")
+Flavor = SubResource("Resource_l8plj")
+TintColor = Color(0.7882353, 0.65882355, 0.41568628, 1)

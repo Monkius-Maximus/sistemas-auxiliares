@@ -9,7 +9,7 @@ nome, nutrição e qualidade do resultado.
 Projeto Godot completo — abra a pasta no Godot 4.7 e dê play. A cena principal já é
 `Scenes/CookingDemo.tscn`. O nível de culinária é exportado no inspetor (`CookingLevel`, padrão 6).
 
-Não precisa de arte: `SampleContent` gera ícones de placeholder por cor via `ImageTexture`.
+Não precisa de arte: sem ícone, o painel desenha o `TintColor` do item.
 
 Verificar o balanceamento sem abrir o painel:
 
@@ -24,14 +24,17 @@ ajuste essas duas linhas — é o único acoplamento de versão do projeto.
 
 ```
 Data/      IngredientDef, BaseItemDef, RecipeAnchor, FlavorProfile, Nutrition
-           → Resource do Godot, para virarem .tres editáveis no inspetor
+           → Resource do Godot: as classes que dão forma ao conteúdo
+
+Content/   Ingredients/ · Bases/ · Anchors/ em .tres, lidos por ContentLibrary
+           → ingrediente novo é arquivo novo; não há lista para registrá-lo
 
 Cooking/   CookingSession (estado)  ·  DishEvaluator + DishNamer (funções puras)
            → nenhuma chamada de API do Godot; testável fora do engine
 
-UI/Context/  ContextPanel, PanelContext, PanelPrimitives, PanelSkin,
-             PanelFocus, PanelCell, PromptBar
-           → o shell reutilizável: um painel para toda interação do jogo
+addons/context_panel/
+           → o shell reutilizável, sem dependência deste projeto: um painel para toda
+             interação, e o mesmo painel para os outros jogos. Contrato no README de lá.
 
 UI/        CookingContext, QuickMealContext, CookingDemo
            → zero estado próprio; escuta CookingSession.Changed e reconstrói a definição

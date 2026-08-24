@@ -1,7 +1,7 @@
 using System;
 using Godot;
 
-namespace LifeSim.Ui;
+namespace ContextUi;
 
 /// <summary>
 /// A célula focável do painel: uma caixa que aceita qualquer conteúdo, entra no grafo de
