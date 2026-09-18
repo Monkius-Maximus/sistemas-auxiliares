@@ -21,9 +21,16 @@ public partial class CookingDemo : Control
 {
     [Export] public int CookingLevel { get; set; } = 6;
 
-    private Dictionary<IngredientDef, int> _pantry;
     private List<BaseItemDef> _bases;
     private List<RecipeAnchor> _anchors;
+
+    /// <summary>
+    /// A sessão do Sim, viva enquanto o protótipo roda. Uma só: é ela que é dona da
+    /// despensa, então preparar duas vezes precisa acontecer na mesma sessão — uma sessão
+    /// nova por preparo copiaria a despensa e o estoque nunca desceria, que é o contrário
+    /// do que o botão de confirmar promete.
+    /// </summary>
+    private CookingSession _session;
 
     private List<QuickMealOption> _options;
     private QuickMealOption _selected;
@@ -35,9 +42,13 @@ public partial class CookingDemo : Control
 
     public override void _Ready()
     {
-        _pantry = ContentLibrary.StartingPantry();
         _bases = ContentLibrary.Bases();
         _anchors = ContentLibrary.Anchors();
+
+        _session = new CookingSession(ContentLibrary.StartingPantry(), CookingLevel);
+        _session.SetBase(_bases[0]);
+        _session.Changed += () => _panel?.Rebuild();
+
         OpenQuickMenu();
     }
 
@@ -47,24 +58,25 @@ public partial class CookingDemo : Control
 
     private void OpenQuickMenu()
     {
+        // Sair do painel manual devolve à despensa o que ficou no recipiente, antes de
+        // planejar: o menu precisa contar com esses ingredientes de volta.
+        _session.Clear();
+
         // No jogo real isto vem do Sim: as âncoras que ele já descobriu.
         var known = _anchors.Select(a => a.DishName).ToList();
 
-        _options = QuickMealPlanner.Plan(_pantry, _bases, _anchors, known, CookingLevel);
+        _options = QuickMealPlanner.Plan(_session.Pantry, _bases, _anchors, known, CookingLevel);
         _selected = _options[0];
         _definition = () => QuickMealContext.Build(
-            _pantry, _options, _selected, Select, PrepareQuick, OpenManualPanel);
+            _session.Pantry, _options, _selected, Select, PrepareQuick, OpenManualPanel);
 
         Render();
     }
 
     private void OpenManualPanel()
     {
-        var session = new CookingSession(_pantry, CookingLevel);
-        session.SetBase(_bases[0]);
-        session.Changed += () => _panel.Rebuild();
-
-        _definition = () => CookingContext.Build(session, _bases, _anchors, () => Cook(session), OpenQuickMenu);
+        _session.Clear();
+        _definition = () => CookingContext.Build(_session, _bases, _anchors, Cook, OpenQuickMenu);
         Render();
     }
 
@@ -74,10 +86,16 @@ public partial class CookingDemo : Control
         _panel.Rebuild();
     }
 
-    private void PrepareQuick() =>
-        Report("Rápido", QuickMealPlanner.Prepare(new CookingSession(_pantry, CookingLevel), _selected, _anchors));
+    private void PrepareQuick()
+    {
+        Report("Rápido", QuickMealPlanner.Prepare(_session, _selected, _anchors));
 
-    private void Cook(CookingSession session) => Report("Manual", session.Cook(_anchors));
+        // A despensa desceu: as opções precisam ser replanejadas, porque custo, qualidade
+        // prevista e disponibilidade saem do estoque.
+        OpenQuickMenu();
+    }
+
+    private void Cook() => Report("Manual", _session.Cook(_anchors));
 
     /// <summary>
     /// Fim de linha do protótipo. Enquanto o prato não virar item do mundo, o resultado

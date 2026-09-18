@@ -45,6 +45,15 @@ public sealed class CookingSession
     public int SeasoningSlots => Base?.SeasoningSlots ?? 0;
 
     public int AvailableOf(IngredientDef def) => _pantry[def.Id];
+
+    /// <summary>
+    /// A despensa, para quem precisa planejar sobre ela — o menu rápido. Somente leitura:
+    /// quem muda quantidade é esta classe, na mesma operação em que o prato muda. Materializa
+    /// a visão a cada chamada; é lida quando o menu abre, não a cada quadro.
+    /// </summary>
+    public IReadOnlyDictionary<IngredientDef, int> Pantry =>
+        _defsById.Values.ToDictionary(d => d, d => _pantry[d.Id]);
+
     public int UnitsInDish(IngredientDef def) =>
         Bucket(def).TryGetValue(def.Id, out var s) ? s.Units : 0;
 

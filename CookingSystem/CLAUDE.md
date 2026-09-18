@@ -112,8 +112,7 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 | Reação por traço de personalidade | não existe | usar `Group` + `DominantAxis` |
 | Ícones de verdade | `IngredientDef.Icon` | campo pronto no `.tres`, sem arte — desenha o `TintColor` |
 | Primitivos `grid.dual` e `text` | `addons/context_panel/PanelPrimitives.cs` | no mock, sem sistema que os use |
-| Despensa que diminui ao cozinhar | `CookingDemo` | cada preparo abre uma sessão nova |
-| Bulk +5 no stepper | `CookingSession` | falta operação de lote que saiba parar no teto |
+| Bulk +5 no stepper | — | dispensado: segurar A/+ já repete acelerando, e dois jeitos de fazer a mesma coisa violam o estilo |
 | Segundo contexto real (loja/bancada) | não existe | o shell aguenta e já é addon; falta o sistema por trás |
 | Stack de modificadores | não existe | traço/perícia mexendo no avaliador sem ele saber que existem |
 
