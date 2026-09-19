@@ -77,7 +77,7 @@ public static class PanelPrimitives
                 verb.Active ? skin.AccentDeep : skin.Cell,
                 verb.Active ? skin.Accent : skin.LineSoft);
             button.Disabled = verb.Locked;
-            button.CustomMinimumSize = new Vector2(0, 44);
+            button.CustomMinimumSize = new Vector2(0, 58);
             var captured = verb;
             button.Pressed += () => captured.OnUse();
 
@@ -90,7 +90,10 @@ public static class PanelPrimitives
             head.AddChild(Expanding(Text(verb.Name, 12, verb.Locked ? skin.Mute : skin.Ink)));
             head.AddChild(Text(verb.Skill, 9, skin.Mute));
             content.AddChild(head);
-            content.AddChild(Text(verb.Note, 10, skin.Mute));
+
+            // A nota quebra linha: o conteúdo vai ancorado por cima do botão, então um rótulo
+            // sem quebra não é apertado por ninguém — ele simplesmente vaza para fora da coluna.
+            content.AddChild(Wrapped(verb.Note, 10, skin.Mute));
 
             Fill(button, content, inset: 9);
             button.Modulate = verb.Locked ? new Color(1, 1, 1, 0.5f) : Colors.White;

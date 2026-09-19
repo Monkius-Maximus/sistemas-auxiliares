@@ -30,6 +30,7 @@ public partial class CookingDemo : Control
 
     private Func<PanelContext> _definition;
     private ContextPanel _panel;
+    private Control _screen;
     private PanelSkin _skin = PanelSkin.Dark;
     private bool _showRegionLabels;
 
@@ -93,10 +94,12 @@ public partial class CookingDemo : Control
 
     private void Render()
     {
-        foreach (var child in GetChildren())
+        // Troca só a tela que este script criou. Liberar todos os filhos levaria junto
+        // qualquer nó que a cena tenha anexado aqui — e some sem explicação.
+        if (_screen is not null)
         {
-            RemoveChild(child);
-            child.QueueFree();
+            RemoveChild(_screen);
+            _screen.QueueFree();
         }
 
         _panel = new ContextPanel
@@ -115,7 +118,6 @@ public partial class CookingDemo : Control
             ContentMarginTop = 24,
             ContentMarginBottom = 24,
         });
-        AddChild(screen);
 
         var column = new VBoxContainer();
         column.AddThemeConstantOverride("separation", 16);
@@ -123,6 +125,9 @@ public partial class CookingDemo : Control
 
         column.AddChild(DevBar());
         column.AddChild(_panel);
+
+        _screen = screen;
+        AddChild(_screen);
     }
 
     /// <summary>Barra de autoria: trocar a pele e etiquetar as regiões do shell.</summary>

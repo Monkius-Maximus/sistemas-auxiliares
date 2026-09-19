@@ -8,6 +8,24 @@ nunca uma janela nova.
 Tradução do mock HTML (`Context Panel`, feito no Claude Design) para Godot/C#. O mock continua
 sendo a referência visual; este documento é o contrato.
 
+## As telas
+
+Capturas reais do projeto rodando em Godot 4.7 stable, não mockups.
+
+O menu rápido — a porta de entrada padrão, com as porções da âncora escolhida como lista de
+"tenho / preciso":
+
+![Menu rápido](panel-quick.png)
+
+O painel manual, com a omelete completa montada e a âncora casada:
+
+![Painel manual](panel-manual.png)
+
+O mesmo painel com `ShowRegionLabels` ligado e a pele clara — é assim que se discute a
+estrutura sem ler código:
+
+![Regiões etiquetadas](panel-regions.png)
+
 ## As sete regiões
 
 Leem-se da esquerda para a direita: em que você age, o que você faz, o que resulta.
@@ -108,3 +126,5 @@ de demonstração expõe as duas numa barra "Dev".
   É o que mantém a definição como fonte única. O custo é perder foco de teclado/controle a
   cada clique — se isso incomodar, o conserto é o shell reaproveitar nós, não a definição
   virar mutável.
+- **Entrada real.** As capturas vêm de um display virtual: hover, foco e navegação por
+  controle nunca foram exercitados.

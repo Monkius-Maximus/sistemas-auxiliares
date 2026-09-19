@@ -71,7 +71,9 @@ public static class QuickMealContext
                 Body = new SlotGrid
                 {
                     Mode = SlotGridMode.Select,
-                    Columns = 3,
+                    // Duas colunas, não três: nome de prato é longo e ladrilho estreito corta
+                    // justamente a parte que distingue um prato do outro.
+                    Columns = 2,
                     Slots = options.Select(option => new PanelSlot
                     {
                         Name = option.Name,
@@ -121,9 +123,7 @@ public static class QuickMealContext
 
             Readout = DishReadout.Of(dish,
                 selected.CanMake ? "Qualidade prevista" : "Indisponível",
-                selected.CanMake
-                    ? "O número previsto é o número que o prato vai ter."
-                    : selected.Blocker),
+                Caption(selected, dish)),
 
             Commit = new CommitAction
             {
@@ -147,4 +147,18 @@ public static class QuickMealContext
                 $"custo {option.Cost}",
             }
             : new[] { option.Base.DisplayName, $"custo {option.Cost}" };
+
+    /// <summary>
+    /// Vale mais dizer que a perícia é o gargalo do que deixar o jogador achar que a receita
+    /// é ruim: o mesmo prato sobe de nota sozinho quando o Sim melhora.
+    /// </summary>
+    private static string Caption(QuickMealOption option, CookedDish dish)
+    {
+        if (!option.CanMake)
+            return option.Blocker;
+
+        return dish.CappedBySkill
+            ? $"A perícia limita em {dish.QualityCeiling:P0}; o prato daria {dish.RawQuality:P0}."
+            : "O número previsto é o número que o prato vai ter.";
+    }
 }

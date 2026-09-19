@@ -67,24 +67,31 @@ otimizar às cegas.
 
 ### Distribuição calibrada
 
-As constantes em `DishEvaluator` foram ajustadas para este espalhamento, verificável
-a qualquer momento por `Tools/BalanceCheck.cs`:
+Saída real do `Tools/BalanceCheck.cs` com o conteúdo de `SampleContent`, nível 10:
 
 ```
-ovo puro, sem sal          0.06     lixo
-sopa de batata sem tempero 0.05
-bacon + açúcar (choque)    0.04
-sal demais                 0.07
-─────────────────────────────────
-só brócolis + sal          0.46     preguiçoso
-tudo junto (bagunça)       0.42
-salada tomate/queijo       0.59
-─────────────────────────────────
-omelete queijo + sal       0.81     sólido
-bacon + ovo + sal          0.82
-─────────────────────────────────
-omelete completa           0.96     excelente
-sopa de batata equilibrada 0.95
+ovo puro, sem sal            0.06   lixo
+sopa de batata sem tempero   0.05
+sal demais                   0.07
+bacon + açúcar (choque)      0.04
+───────────────────────────────────
+só brócolis + sal            0.46   preguiçoso
+tudo junto (bagunça)         0.42
+───────────────────────────────────
+caprese                      0.74   sólido      ★ âncora
+bacon + ovo + sal            0.82
+───────────────────────────────────
+omelete completa             0.97   excelente   ★ âncora
+caldo verde                  0.97               ★ âncora
+```
+
+O mesmo prato pela progressão de perícia, que é o que dá peso ao nível:
+
+```
+omelete completa   nível  0 -> 0.50   (teto 0.50, 2/2 slots)
+                   nível  3 -> 0.65   (teto 0.65, 2/2 slots)
+                   nível  6 -> 0.80   (teto 0.80, 3/3 slots)
+                   nível 10 -> 0.97   (teto 1.00, 3/4 slots)
 ```
 
 Mexer nessas constantes é decisão de design, não bugfix. Elas estão isoladas no topo de
@@ -120,9 +127,11 @@ Poucas de propósito — são atalhos premiados, não o conteúdo principal.
 **NPCs cozinham com este mesmo código.** Um NPC com perícia baixa produz pratos ruins porque
 tem menos slots e teto menor — não porque exista uma tabela de "pratos ruins de NPC".
 
-## Ressalva
+## Estado de verificação
 
-Não tive busca web disponível nesta sessão para conferir assinaturas da API do Godot 4.7
-contra a documentação. Os pontos que valem checar na primeira compilação:
-`Image.CreateEmpty`, `TextureRect.ExpandModeEnum`, `TextServer.OverrunBehavior` e o nome
-do stylebox `"fill"` do `ProgressBar`.
+Compilado e executado contra **Godot 4.7 stable (mono)** com **.NET 8**: build sem erros nem
+avisos, cena principal roda, e o `BalanceCheck` produz a tabela acima. As telas em `docs/` são
+capturas reais desse projeto, não mockups.
+
+O que **não** foi verificado: nada de entrada real de mouse/teclado — as capturas vêm de um
+display virtual, então hover, foco e navegação por controle continuam por testar.
