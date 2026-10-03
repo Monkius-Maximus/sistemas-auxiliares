@@ -64,6 +64,8 @@ public static class CookingContext
                 {
                     Verbs = new[]
                     {
+                        FreshestFirst(session),
+                        DiscardRotten(session),
                         new Verb
                         {
                             Name = "Esvaziar",
@@ -150,13 +152,45 @@ public static class CookingContext
             Tint = def.TintColor,
             // Ladrilho apagado por incompatibilidade diz isso em vez de mentir "estoque 40".
             Sub = compatible
-                ? $"estoque {stock}"
+                ? PantryText.Stock(session.Pantry, def, stock)
                 : $"não vai na {session.Base.DisplayName.ToLowerInvariant()}",
-            Warn = !compatible,
+            Warn = !compatible || PantryText.Spoilage(session.Pantry, def) is not null,
             Quantity = inDish,
             Enabled = stock > 0 && slotFree && compatible && underCap,
             OnAdd = () => session.AddUnit(def),
             OnRemove = () => session.RemoveUnit(def),
+        };
+    }
+
+    /// <summary>
+    /// A troca entre o melhor prato agora e o desperdício. Usar os velhos antes é o que um
+    /// cozinheiro faz por padrão; usar os frescos é escolher a nota e deixar o resto estragar.
+    /// </summary>
+    private static Verb FreshestFirst(CookingSession session)
+    {
+        bool on = session.PickOrder == PickOrder.FreshestFirst;
+        return new Verb
+        {
+            Name = "Usar os mais frescos primeiro",
+            Active = on,
+            Note = on
+                ? "Melhor prato agora. Os lotes velhos ficam na despensa envelhecendo."
+                : "Desligado: os mais velhos saem antes — menos desperdício, prato um pouco pior.",
+            OnUse = () => session.SetPickOrder(on ? PickOrder.OldestFirst : PickOrder.FreshestFirst),
+        };
+    }
+
+    private static Verb DiscardRotten(CookingSession session)
+    {
+        int rotten = session.RottenUnits;
+        return new Verb
+        {
+            Name = "Jogar fora o que estragou",
+            Locked = rotten == 0,
+            Note = rotten == 0
+                ? "Nada estragado na despensa."
+                : $"{rotten} {(rotten == 1 ? "unidade estragada" : "unidades estragadas")}, contando o recipiente.",
+            OnUse = () => session.DiscardRotten(),
         };
     }
 
@@ -183,6 +217,7 @@ public static class CookingContext
 
     private static string Description(CookedDish dish) =>
         dish is null ? "Nada dentro ainda."
+        : dish.AnchorBonusDenied ? "O Sim reconhece a combinação, mas ingrediente estragado não ganha bônus."
         : dish.MatchedAnchor ? "O Sim reconhece a combinação: o prato ganha nome próprio e bônus."
         : "Improvisado. O nome vem do ingrediente que domina a massa.";
 
@@ -190,6 +225,10 @@ public static class CookingContext
     {
         if (dish is null)
             return "Adicione um ingrediente para começar.";
+
+        // Intoxicação vem antes de tudo: é a única coisa no painel que faz mal ao Sim.
+        if (dish.PoisoningChance > 0f)
+            return DishReadout.PoisoningWarning(dish);
 
         // Vale mais dizer que a perícia é o gargalo do que deixar o jogador otimizar às cegas.
         return dish.CappedBySkill

@@ -22,6 +22,12 @@ public enum DishStat
 
     /// <summary>Multiplica a gordura do prato. Fritura soma óleo.</summary>
     Lipids,
+
+    /// <summary>
+    /// Multiplica o risco de intoxicação de ingrediente estragado. Calor mata bactéria; cru não.
+    /// Entradas novas vão sempre no fim: o .tres grava este enum como número.
+    /// </summary>
+    PoisoningRisk,
 }
 
 public enum ModifierOp

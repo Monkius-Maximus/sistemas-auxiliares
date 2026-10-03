@@ -32,6 +32,15 @@ public partial class CookingDemo : Control
     /// </summary>
     private CookingSession _session;
 
+    /// <summary>
+    /// O relógio do protótipo. No jogo quem passa o tempo é o mundo; aqui é um botão, para
+    /// dar para ver a comida envelhecer sem esperar.
+    /// </summary>
+    private int _day;
+
+    /// <summary>O menu rápido precisa ser replanejado quando o estoque muda por fora dele.</summary>
+    private bool _quickMenuOpen;
+
     private List<QuickMealOption> _options;
     private QuickMealOption _selected;
 
@@ -65,7 +74,8 @@ public partial class CookingDemo : Control
         // No jogo real isto vem do Sim: as âncoras que ele já descobriu.
         var known = _anchors.Select(a => a.DishName).ToList();
 
-        _options = QuickMealPlanner.Plan(_session.Pantry, _bases, _anchors, known, CookingLevel);
+        _quickMenuOpen = true;
+        _options = QuickMealPlanner.Plan(_session.Pantry, _bases, _anchors, known, CookingLevel, _session.PickOrder);
         _selected = _options[0];
         _definition = () => QuickMealContext.Build(
             _session.Pantry, _options, _selected, Select, PrepareQuick, OpenManualPanel);
@@ -75,6 +85,7 @@ public partial class CookingDemo : Control
 
     private void OpenManualPanel()
     {
+        _quickMenuOpen = false;
         _session.Clear();
         _definition = () => CookingContext.Build(_session, _bases, _anchors, Cook, OpenQuickMenu);
         Render();
@@ -151,6 +162,7 @@ public partial class CookingDemo : Control
         row.AddChild(PanelPrimitives.Text("Dev", 10, _skin.Mute));
         row.AddChild(DevButton(_skin == PanelSkin.Dark ? "Pele · escura" : "Pele · clara", ToggleSkin));
         row.AddChild(DevButton(_showRegionLabels ? "Regiões · visíveis" : "Regiões · ocultas", ToggleRegionLabels));
+        row.AddChild(DevButton($"Dia {_day} · passar 1 dia", PassDay));
         return row;
     }
 
@@ -161,6 +173,17 @@ public partial class CookingDemo : Control
         button.AddThemeFontSizeOverride("font_size", 11);
         button.Pressed += () => onPress();
         return button;
+    }
+
+    private void PassDay()
+    {
+        _day++;
+        _session.AdvanceTime(1f);
+
+        // Custo, qualidade prevista e disponibilidade do menu saem do estoque, que acabou de
+        // envelhecer. O painel manual não precisa disso: ele lê a sessão a cada redesenho.
+        if (_quickMenuOpen) OpenQuickMenu();
+        else Render();
     }
 
     private void ToggleSkin()

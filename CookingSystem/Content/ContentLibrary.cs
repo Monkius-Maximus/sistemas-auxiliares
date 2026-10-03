@@ -32,15 +32,38 @@ public static class ContentLibrary
         Load<RecipeAnchor>(AnchorsFolder).OrderBy(a => a.DishName).ToList();
 
     /// <summary>
-    /// Despensa inicial. Isto não é conteúdo: é estado de partida, e vai embora quando
-    /// existir save. Temperos vêm em quantidade alta porque entram em doses pequenas.
+    /// Despensa toda fresca, idade zero. É a referência do <c>BalanceCheck</c>: os casos de
+    /// calibração medem tempero e combinação, e frescor variando por baixo esconderia isso.
     /// </summary>
-    public static Dictionary<IngredientDef, int> StartingPantry()
+    public static Pantry FreshPantry() =>
+        new(Ingredients().Select(d => (d, d.IsSeasoning ? 25 : 40, 0f)));
+
+    /// <summary>
+    /// A cozinha do protótipo como se alguém morasse nela: a maior parte fresca, alguns lotes
+    /// passando, um estragado. Isto não é conteúdo — é estado de partida, e vai embora quando
+    /// existir save. Existe para que o sistema de perecíveis apareça na primeira tela.
+    /// </summary>
+    public static Pantry StartingPantry()
     {
-        var pantry = new Dictionary<IngredientDef, int>();
-        foreach (var def in Ingredients())
-            pantry[def] = def.IsSeasoning ? 25 : 40;
-        return pantry;
+        var byId = Ingredients().ToDictionary(d => d.Id);
+        var lots = new List<(IngredientDef, int, float)>();
+        foreach (var def in byId.Values)
+        {
+            switch (def.Id)
+            {
+                case "ovo":      lots.Add((def, 30, 3f)); lots.Add((def, 10, 28f)); break;
+                case "brocolis": lots.Add((def, 25, 1f)); lots.Add((def, 15, 6f)); break;
+                case "tomate":   lots.Add((def, 30, 2f)); lots.Add((def, 10, 9f)); break;
+                case "bacon":    lots.Add((def, 40, 2f)); break;
+                case "queijo":   lots.Add((def, 40, 5f)); break;
+                case "cogumelo": lots.Add((def, 40, 3f)); break;
+                case "batata":   lots.Add((def, 40, 10f)); break;
+                case "cebolinha":lots.Add((def, 40, 2f)); break;
+                case "ervas":    lots.Add((def, 25, 4f)); break;
+                default:         lots.Add((def, def.IsSeasoning ? 25 : 40, 0f)); break;
+            }
+        }
+        return new Pantry(lots);
     }
 
     /// <summary>

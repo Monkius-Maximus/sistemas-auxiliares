@@ -22,4 +22,6 @@ DisplayName = "Cebolinha"
 Group = 8
 Nutrition = SubResource("Resource_mef4g")
 Flavor = SubResource("Resource_2jhfk")
+FreshDays = 5.0
+RotDays = 10.0
 TintColor = Color(0.43529412, 0.7490196, 0.36862746, 1)

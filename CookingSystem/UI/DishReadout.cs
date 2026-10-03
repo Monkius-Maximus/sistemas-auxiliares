@@ -51,8 +51,20 @@ internal static class DishReadout
         Stat("Carbo.", dish?.Carbs, "0.0"),
         Stat("Ânimo", dish?.UnhappinessRelief, "+0.0;-0.0"),
         Stat("Tédio", dish?.BoredomRelief, "0.0"),
-        Stat("Peso", dish?.Weight, "0.00"),
+        // Intoxicação no lugar do peso: o peso não decide nada para o Sim, a intoxicação decide.
+        new ReadoutStat
+        {
+            Key = "Intoxicação",
+            Value = dish is null ? "—" : $"{dish.PoisoningChance:P0}",
+            Tone = dish is null ? StatTone.Muted
+                 : dish.PoisoningChance > 0f ? StatTone.Alert
+                 : StatTone.Neutral,
+        },
     };
+
+    /// <summary>A frase de alarme, igual nas duas telas.</summary>
+    public static string PoisoningWarning(CookedDish dish) =>
+        $"{dish.PoisoningChance:P0} de chance de o Sim passar mal: tem ingrediente estragado no prato.";
 
     /// <summary>Sem prato o número vira travessão apagado: a grade não muda de forma.</summary>
     private static ReadoutStat Stat(string key, float? value, string format) => new()

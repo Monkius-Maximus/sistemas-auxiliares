@@ -23,4 +23,6 @@ Nutrition = SubResource("Resource_ey3c4")
 Flavor = SubResource("Resource_et7l6")
 Potency = 3.0
 MaxUnitsInDish = 12
+FreshDays = 7.0
+RotDays = 14.0
 TintColor = Color(0.33333334, 0.5019608, 0.24705882, 1)

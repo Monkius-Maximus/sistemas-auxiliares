@@ -25,4 +25,6 @@ Group = 5
 Nutrition = SubResource("Resource_1jygl")
 Flavor = SubResource("Resource_uc3n8")
 PricePerUnit = 2
+FreshDays = 4.0
+RotDays = 8.0
 TintColor = Color(0.30980393, 0.56078434, 0.2901961, 1)

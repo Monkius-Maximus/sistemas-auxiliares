@@ -47,6 +47,13 @@ public static class DishEvaluator
     /// jogar tudo dentro (5+) volta a piorar.</summary>
     private static readonly float[] VarietyByGroupCount = { 0.30f, 0.50f, 0.82f, 1.00f, 0.92f, 0.80f };
 
+    /// <summary>
+    /// Risco de intoxicação por fração de massa estragada: 10% do prato estragado dá 25% de
+    /// chance, cru. Teto abaixo de 1 porque nem comida podre derruba todo mundo.
+    /// </summary>
+    private const float PoisoningPerRottenMass = 2.5f;
+    private const float PoisoningCap = 0.95f;
+
     private const float CeilingAtLevelZero = 0.50f;
     private const float CeilingPerLevel = 0.05f;
 
@@ -101,19 +108,35 @@ public static class DishEvaluator
         float variety = ScoreVariety(session.Ingredients);
         float freshness = ScoreFreshness(stacks, totalWeight, mods.Apply(DishStat.SpoilagePenalty, 1f));
 
+        float rottenShare = stacks.Sum(s => s.RottenWeight) / totalWeight;
+        float poisoning = Math.Clamp(
+            mods.Apply(DishStat.PoisoningRisk, rottenShare * PoisoningPerRottenMass), 0f, PoisoningCap);
+
         float product = seasoning * balance * harmony * variety * freshness;
 
         // A âncora fecha uma fração da distância até 1.0 em vez de multiplicar: mantém a
         // granularidade no topo e ainda premia bem uma execução mediana de receita conhecida.
         var anchor = MatchAnchor(session, anchors);
-        float lifted = anchor is null ? product : product + (1f - product) * anchor.QualityLift;
+
+        // Receita reconhecida não salva ingrediente podre: com massa estragada o prato continua
+        // sendo a receita (nome e casamento valem), mas perde o bônus. Passado não cancela —
+        // omelete de ovo meio velho ainda é omelete.
+        bool liftable = anchor is not null && rottenShare <= 0f;
+
+        // Uma unidade podre já faz o prato "estragado", mesmo que a média do lote pareça só
+        // passada: é a mesma massa que gera o risco de intoxicação, e o nome não pode dizer
+        // menos do que o número.
+        var state = rottenShare > 0f ? Spoilage.Rotten : Freshness.StateOf(MinFreshness(stacks));
+        float lifted = liftable ? product + (1f - product) * anchor.QualityLift : product;
 
         float ceiling = Math.Min(1f, CeilingAtLevelZero + CeilingPerLevel * session.CookingLevel);
         float quality = Math.Clamp(lifted, 0f, ceiling);
 
         return new CookedDish
         {
-            Name = anchor?.DishName ?? DishNamer.Generate(session, MinFreshness(stacks)),
+            Name = anchor is null
+                ? DishNamer.Generate(session, state)
+                : DishNamer.WithState(anchor.DishName, state),
             Calories = calories,
             Protein = protein,
             Lipids = mods.Apply(DishStat.Lipids, lipids),
@@ -130,9 +153,11 @@ public static class DishEvaluator
             VarietyScore = variety,
             FreshnessScore = freshness,
             QualityCeiling = ceiling,
+            PoisoningChance = poisoning,
             Intensity = intensity,
             DominantAxis = (FlavorAxis)dominantIndex,
             MatchedAnchor = anchor is not null,
+            AnchorBonusDenied = anchor is not null && !liftable,
         };
     }
 

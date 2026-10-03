@@ -37,9 +37,18 @@ public sealed class CookedDish
     /// <summary>Verdadeiro só quando a perícia foi de fato o fator limitante.</summary>
     public bool CappedBySkill => RawQuality > QualityCeiling;
 
+    /// <summary>
+    /// Chance 0..1 de o Sim passar mal ao comer. Vem só de massa estragada no prato. É um
+    /// número, não um sorteio: quem sorteia é quem come, para o preview poder mostrá-lo.
+    /// </summary>
+    public required float PoisoningChance { get; init; }
+
     public required float Intensity { get; init; }
     public required FlavorAxis DominantAxis { get; init; }
     public required bool MatchedAnchor { get; init; }
+
+    /// <summary>Reconheceu a receita, mas ingrediente estragado tirou o bônus.</summary>
+    public bool AnchorBonusDenied { get; init; }
 
     // --- Camada de life sim ---
     /// <summary>Redução de infelicidade ao comer. Prato ruim vira número negativo.</summary>

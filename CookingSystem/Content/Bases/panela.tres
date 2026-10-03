@@ -20,6 +20,12 @@ Stat = 3
 Value = 1.6
 Description = "Caldo hidrata (+60% sede saciada)"
 
+[sub_resource type="Resource" id="Resource_nvnlp"]
+script = ExtResource("1_y23gj")
+Stat = 5
+Value = 0.4
+Description = "Fervura longa mata a maior parte (intoxicação −60%)"
+
 [resource]
 script = ExtResource("1_qd1q2")
 Id = "panela"
@@ -30,4 +36,4 @@ BaseIngredientSlots = 3
 SeasoningSlots = 3
 AllowedGroups = Array[int]([2, 5, 7, 8])
 TintColor = Color(0.43529412, 0.47843137, 0.5411765, 1)
-Modifiers = Array[ExtResource("1_y23gj")]([SubResource("Resource_y23gj"), SubResource("Resource_ndnwl"), SubResource("Resource_vxsyp")])
+Modifiers = Array[ExtResource("1_y23gj")]([SubResource("Resource_y23gj"), SubResource("Resource_ndnwl"), SubResource("Resource_vxsyp"), SubResource("Resource_nvnlp")])

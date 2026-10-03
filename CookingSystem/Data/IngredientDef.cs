@@ -37,6 +37,26 @@ public partial class IngredientDef : Resource
     /// <summary>Teto de unidades desse ingrediente em um único prato.</summary>
     [Export] public int MaxUnitsInDish { get; set; } = 30;
 
+    /// <summary>
+    /// Dias de geladeira em que o ingrediente ainda está fresco. Zero significa que não
+    /// perece — sal, açúcar, vinagre. A geladeira é o armazenamento padrão do jogo; um
+    /// armazenamento pior entra depois como multiplicador da passagem do tempo.
+    /// </summary>
+    [Export] public float FreshDays { get; set; }
+
+    /// <summary>Dia em que termina de estragar. Entre FreshDays e RotDays o frescor cai em linha reta.</summary>
+    [Export] public float RotDays { get; set; }
+
+    public bool Perishable => FreshDays > 0f;
+
+    /// <summary>Frescor 0..1 de uma unidade com esta idade, em dias.</summary>
+    public float FreshnessAt(float ageDays)
+    {
+        if (!Perishable || ageDays <= FreshDays) return 1f;
+        if (ageDays >= RotDays) return 0f;
+        return 1f - (ageDays - FreshDays) / (RotDays - FreshDays);
+    }
+
     /// <summary>Cor usada pelos ícones de placeholder e pela borda do slot.</summary>
     [Export] public Color TintColor { get; set; } = Colors.White;
 }

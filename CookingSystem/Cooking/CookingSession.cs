@@ -5,37 +5,37 @@ using System.Linq;
 namespace LifeSim.Cooking;
 
 /// <summary>
-/// Estado mutável de uma preparação em andamento. Dona da despensa E do prato, para que
-/// exista um único lugar onde as duas quantidades mudam juntas. A UI nunca guarda estado:
-/// escuta <c>Changed</c> e redesenha.
+/// A cozinha do Sim: a despensa e o prato em preparo. Única dona das duas quantidades, para
+/// que exista um só lugar onde elas mudam juntas — pôr no prato é tirar da despensa, na mesma
+/// operação. A UI nunca guarda estado: escuta <c>Changed</c> e redesenha.
 ///
 /// Toda pré-condição violada lança exceção. O painel só oferece ações válidas — se uma
 /// exceção subir daqui, é bug de UI, não input do jogador.
 /// </summary>
 public sealed class CookingSession
 {
-    /// <summary>Disparado após qualquer mutação. A UI escuta e redesenha; nada mais.</summary>
+    /// <summary>Disparado após qualquer mutação, inclusive o tempo passando. A UI escuta e redesenha.</summary>
     public event Action Changed;
 
     private readonly Dictionary<string, IngredientStack> _ingredients = new();
     private readonly Dictionary<string, IngredientStack> _seasonings = new();
-    private readonly Dictionary<string, int> _pantry;
-    private readonly Dictionary<string, IngredientDef> _defsById;
 
-    public CookingSession(IReadOnlyDictionary<IngredientDef, int> pantry, int cookingLevel)
+    public CookingSession(Pantry pantry, int cookingLevel)
     {
-        if (pantry is null)
-            throw new ArgumentNullException(nameof(pantry));
+        Pantry = pantry ?? throw new ArgumentNullException(nameof(pantry));
         if (cookingLevel < 0)
             throw new ArgumentOutOfRangeException(nameof(cookingLevel));
-
-        _pantry = pantry.ToDictionary(kv => kv.Key.Id, kv => kv.Value);
-        _defsById = pantry.Keys.ToDictionary(d => d.Id, d => d);
         CookingLevel = cookingLevel;
     }
 
     public int CookingLevel { get; }
     public BaseItemDef Base { get; private set; }
+
+    /// <summary>A despensa, para leitura. Mudar estoque é sempre por um método desta classe.</summary>
+    public Pantry Pantry { get; }
+
+    /// <summary>De que lote sai a próxima unidade. Trocar reescolhe o que já está no prato.</summary>
+    public PickOrder PickOrder { get; private set; } = PickOrder.OldestFirst;
 
     /// <summary>
     /// Tudo que mexe neste preparo além dos ingredientes. Hoje só o recipiente contribui;
@@ -50,24 +50,14 @@ public sealed class CookingSession
         Base is null ? 0 : Base.IngredientSlotsForLevel(CookingLevel);
     public int SeasoningSlots => Base?.SeasoningSlots ?? 0;
 
-    public int AvailableOf(IngredientDef def) => _pantry[def.Id];
-
-    /// <summary>
-    /// A despensa, para quem precisa planejar sobre ela — o menu rápido. Somente leitura:
-    /// quem muda quantidade é esta classe, na mesma operação em que o prato muda. Materializa
-    /// a visão a cada chamada; é lida quando o menu abre, não a cada quadro.
-    /// </summary>
-    public IReadOnlyDictionary<IngredientDef, int> Pantry =>
-        _defsById.Values.ToDictionary(d => d, d => _pantry[d.Id]);
+    public int AvailableOf(IngredientDef def) => Pantry.UnitsOf(def);
 
     public int UnitsInDish(IngredientDef def) =>
         Bucket(def).TryGetValue(def.Id, out var s) ? s.Units : 0;
 
-    public IngredientDef DefById(string id) => _defsById[id];
-
     /// <summary>Tudo que a despensa conhece, separado pelo painel em que aparece.</summary>
     public IEnumerable<IngredientDef> PantryIngredients(bool seasonings) =>
-        _defsById.Values.Where(d => d.IsSeasoning == seasonings);
+        Pantry.Defs.Where(d => d.IsSeasoning == seasonings);
 
     /// <summary>Trocar de recipiente esvazia o prato e devolve tudo à despensa.</summary>
     public void SetBase(BaseItemDef baseItem)
@@ -80,32 +70,52 @@ public sealed class CookingSession
         Changed?.Invoke();
     }
 
+    /// <summary>
+    /// Trocar a ordem reescolhe os lotes do que já está no prato. Sem isso o verbo só valeria
+    /// para a próxima unidade e o preview mentiria sobre o prato que está na tela.
+    /// </summary>
+    public void SetPickOrder(PickOrder order)
+    {
+        if (order == PickOrder) return;
+
+        var units = _ingredients.Values.Concat(_seasonings.Values)
+                                .Select(s => (s.Def, s.Units))
+                                .ToList();
+        ReturnAllToPantry();
+        PickOrder = order;
+        foreach (var (def, count) in units)
+            Bucket(def)[def.Id] = new IngredientStack(def, Pantry.Take(def, count, PickOrder));
+
+        Changed?.Invoke();
+    }
+
     public void AddUnit(IngredientDef def, int units = 1)
     {
         if (Base is null)
             throw new InvalidOperationException("Escolha um recipiente antes de adicionar ingredientes.");
         if (units <= 0)
             throw new ArgumentOutOfRangeException(nameof(units));
-        if (_pantry[def.Id] < units)
+        if (AvailableOf(def) < units)
             throw new InvalidOperationException($"Sem {def.DisplayName} suficiente na despensa.");
         if (!def.IsSeasoning && !Base.Accepts(def.Group))
-            throw new InvalidOperationException(
-                $"{Base.DisplayName} não aceita {def.Group}.");
+            throw new InvalidOperationException($"{Base.DisplayName} não aceita {def.Group}.");
 
         var bucket = Bucket(def);
-        if (bucket.TryGetValue(def.Id, out var stack))
-        {
-            stack.Add(units);
-        }
-        else
+        bool existing = bucket.TryGetValue(def.Id, out var stack);
+        if (!existing)
         {
             int limit = def.IsSeasoning ? SeasoningSlots : IngredientSlots;
             if (bucket.Count >= limit)
                 throw new InvalidOperationException($"Todos os {limit} slots estão ocupados.");
-            bucket[def.Id] = new IngredientStack(def, units, FreshnessOf(def));
         }
+        if (UnitsInDish(def) + units > def.MaxUnitsInDish)
+            throw new InvalidOperationException(
+                $"{def.DisplayName} aceita no máximo {def.MaxUnitsInDish} unidades no prato.");
 
-        _pantry[def.Id] -= units;
+        var portions = Pantry.Take(def, units, PickOrder);
+        if (existing) stack.Add(portions);
+        else bucket[def.Id] = new IngredientStack(def, portions);
+
         Changed?.Invoke();
     }
 
@@ -115,11 +125,10 @@ public sealed class CookingSession
         if (!bucket.TryGetValue(def.Id, out var stack))
             throw new InvalidOperationException($"{def.DisplayName} não está no prato.");
 
-        stack.Remove(units);
+        Pantry.Return(def, stack.Remove(units));
         if (stack.Units == 0)
             bucket.Remove(def.Id);
 
-        _pantry[def.Id] += units;
         Changed?.Invoke();
     }
 
@@ -127,6 +136,44 @@ public sealed class CookingSession
     {
         ReturnAllToPantry();
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// O tempo passa para a despensa. É o relógio do mundo que chama isto; o prato em preparo
+    /// volta à despensa antes, porque comida esquecida na bancada não fica parada no tempo.
+    /// </summary>
+    public void AdvanceTime(float days)
+    {
+        ReturnAllToPantry();
+        Pantry.Age(days);
+        Changed?.Invoke();
+    }
+
+    /// <summary>Unidades estragadas na despensa e no recipiente.</summary>
+    public int RottenUnits =>
+        Pantry.RottenUnits + _ingredients.Values.Concat(_seasonings.Values).Sum(s => s.RottenUnits);
+
+    /// <summary>
+    /// Joga fora o que estragou — da despensa e do recipiente. O que já está no prato conta:
+    /// o jogador que vê o risco de intoxicação subir quer tirar o ingrediente podre dali,
+    /// não da prateleira. Devolve quantas unidades saíram.
+    /// </summary>
+    public int DiscardRotten()
+    {
+        if (RottenUnits == 0)
+            throw new InvalidOperationException("Não há nada estragado para jogar fora.");
+
+        int discarded = Pantry.DiscardRotten();
+        foreach (var bucket in new[] { _ingredients, _seasonings })
+        {
+            foreach (var stack in bucket.Values.ToList())
+            {
+                discarded += stack.RemoveRotten();
+                if (stack.Units == 0) bucket.Remove(stack.Def.Id);
+            }
+        }
+        Changed?.Invoke();
+        return discarded;
     }
 
     /// <summary>Consome o prato: o conteúdo sai da sessão de vez.</summary>
@@ -148,14 +195,8 @@ public sealed class CookingSession
     private void ReturnAllToPantry()
     {
         foreach (var stack in _ingredients.Values.Concat(_seasonings.Values))
-            _pantry[stack.Def.Id] += stack.Units;
+            Pantry.Return(stack.Def, stack.All);
         _ingredients.Clear();
         _seasonings.Clear();
     }
-
-    /// <summary>
-    /// Ponto de integração com o sistema de perecíveis do mundo. No protótipo é 1.0;
-    /// troque por uma consulta ao item real da despensa quando esse sistema existir.
-    /// </summary>
-    private static float FreshnessOf(IngredientDef def) => 1.0f;
 }

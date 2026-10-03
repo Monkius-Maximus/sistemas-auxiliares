@@ -11,9 +11,9 @@ Data/      Resources do Godot (.tres-ready). Autoria de conteúdo.
            IngredientDef · BaseItemDef · RecipeAnchor · FlavorProfile · Nutrition · CookingEnums
 
 Cooking/   Modelo. Nenhuma chamada de API do Godot.
-           CookingSession (estado mutável) · DishEvaluator + DishNamer (puros) ·
-           CookedDish (resultado imutável) · IngredientStack ·
-           QuickMealPlanner + QuickMealOption (menu rápido, puros)
+           CookingSession (estado mutável) · Pantry (lotes com idade) · Freshness (a régua) ·
+           DishEvaluator + DishNamer (puros) · ModifierStack · CookedDish (imutável) ·
+           IngredientStack · QuickMealPlanner + QuickMealOption (menu rápido, puros)
 
 Content/   O conteúdo, em .tres: Ingredients/ · Bases/ · Anchors/.
            ContentLibrary lê as pastas — ingrediente novo é arquivo novo, não linha de C#.
@@ -65,8 +65,11 @@ Cozinhar, comprar e construir devem ser definições de contexto, não janelas n
    regra de fundo: nada em `PanelFocus` espelha o modelo, e o painel nunca lê de lá para
    decidir o que desenhar.
 
-3. **`CookingSession` é dona da despensa E do prato.** As duas quantidades mudam na mesma
-   operação. Não mover o inventário para outra classe.
+3. **`CookingSession` é a única que move unidades entre despensa e prato.** As duas
+   quantidades mudam na mesma operação. A despensa virou classe própria (`Pantry`, em lotes)
+   porque envelhecer e escolher lote são responsabilidade dela — mas as operações que tiram e
+   devolvem são `internal` e só a sessão as chama. O tempo também passa pela sessão
+   (`AdvanceTime`), porque passar o tempo muda o que o painel mostra e precisa disparar `Changed`.
 
 4. **`Cooking/` não importa `Godot`.** É o que mantém o modelo testável fora do engine.
    Se precisar de `GD.Print` para debugar, o print vai na UI ou em `Tools/`.
@@ -106,9 +109,10 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 
 | O quê | Onde | Estado |
 |---|---|---|
-| Frescor real da despensa | `CookingSession.FreshnessOf` | fixo em `1.0` |
 | Prato como item persistente | `CookingSession.Cook` retorna e descarta | falta criar o item |
 | Moodlet / motivos ao comer | `CookedDish.UnhappinessRelief` etc. | fórmulas prontas, sem consumidor |
+| Intoxicação ao comer | `CookedDish.PoisoningChance` | chance calculada; falta quem come sortear e aplicar |
+| Armazenamento (geladeira × bancada × geladeira quebrada) | `Pantry.Age` | tudo envelhece como em geladeira; entra como multiplicador do tempo |
 | Reação por traço de personalidade | não existe | usar `Group` + `DominantAxis` |
 | Ícones de verdade | `IngredientDef.Icon` | campo pronto no `.tres`, sem arte — desenha o `TintColor` |
 | Primitivos `grid.dual` e `text` | `addons/context_panel/PanelPrimitives.cs` | no mock, sem sistema que os use |
@@ -130,12 +134,37 @@ em `Cooking/`, em C#, testável pelo `BalanceCheck`. Lógica em arquivo de dados
 esses jogos pagam caro (depuração sem tipos, avaliação de script no late-game) e que este
 sistema não precisa dar: são poucos avaliadores e profundos, não milhares de combinações.
 
+## Perecíveis
+
+A despensa guarda **lotes** — ingrediente, idade em dias, unidades — e não contadores. Dois ovos
+da mesma definição comprados em dias diferentes não são a mesma coisa, e é essa diferença que dá
+sentido a escolher qual usar.
+
+- **Curva por ingrediente**, no `.tres`: fresco até `FreshDays`, cai em linha reta até `RotDays`.
+  `FreshDays = 0` não perece (sal, açúcar, vinagre, pimenta). Valores pensados para geladeira.
+- **Régua única** (`Freshness`): passado abaixo de 0.65, estragado abaixo de 0.30. Nome do prato,
+  ladrilho, risco e descarte leem os mesmos cortes.
+- **Escolha do jogador**: por padrão saem os lotes mais velhos (o que um cozinheiro faz); o verbo
+  "usar os mais frescos primeiro" troca nota agora por desperdício depois. Trocar reescolhe o que
+  já está no prato — o preview não pode mentir sobre o prato na tela.
+- **Intoxicação** vem só de massa estragada: `fração × 2.5`, até 95%, escalada pela alavanca
+  `PoisoningRisk` (frigideira ×0.6, panela ×0.4, tigela cru ×1.0). É um número, não um sorteio:
+  quem sorteia é quem come, para o preview poder mostrá-lo.
+- **Estragado cancela o bônus de âncora** e o nome ganha "(Estragado)" — receita reconhecida não
+  salva ingrediente podre. Passado não cancela. Uma unidade podre já faz o prato "estragado",
+  porque é a mesma massa que gera o risco.
+
+O `BalanceCheck` calibra com despensa fresca (`ContentLibrary.FreshPantry`) e tem uma seção
+própria de frescor. A cozinha do demo (`StartingPantry`) começa com alguns lotes velhos de
+propósito, para o sistema aparecer na primeira tela.
+
 ## Modificadores
 
 O que mexe no prato além dos ingredientes entra como `DishModifier` (`Data/`), resolvido por
 `ModifierStack` (`Cooking/`): `(base + Σ somas) × Π multiplicadores`, sem prioridade nem
 sobrescrita. As alavancas são um conjunto fechado (`DishStat`): intensidade de sabor, penalidade
-de choque, penalidade de estrago, sede, gordura. Conteúdo combina alavancas; não inventa novas.
+de choque, penalidade de estrago, sede, gordura, risco de intoxicação. Entrada nova vai sempre
+no fim do enum — o `.tres` grava o número. Conteúdo combina alavancas; não inventa novas.
 
 Hoje quem contribui é o **recipiente** (`BaseItemDef.Modifiers`, nos `.tres` de `Content/Bases/`):
 

@@ -17,24 +17,25 @@ namespace LifeSim.Cooking;
 public static class QuickMealPlanner
 {
     public static List<QuickMealOption> Plan(
-        IReadOnlyDictionary<IngredientDef, int> pantry,
+        Pantry pantry,
         IReadOnlyList<BaseItemDef> bases,
         IReadOnlyList<RecipeAnchor> anchors,
         IReadOnlyCollection<string> knownAnchorNames,
-        int cookingLevel)
+        int cookingLevel,
+        PickOrder order)
     {
         ArgumentNullException.ThrowIfNull(pantry);
         ArgumentNullException.ThrowIfNull(bases);
         ArgumentNullException.ThrowIfNull(anchors);
         ArgumentNullException.ThrowIfNull(knownAnchorNames);
 
-        var defsById = pantry.Keys.ToDictionary(d => d.Id, d => d);
+        var defsById = pantry.Defs.ToDictionary(d => d.Id, d => d);
         var basesById = bases.ToDictionary(b => b.Id, b => b);
-        var stockById = pantry.ToDictionary(kv => kv.Key.Id, kv => kv.Value);
+        var stockById = pantry.Defs.ToDictionary(d => d.Id, pantry.UnitsOf);
 
         return anchors
             .Where(a => knownAnchorNames.Contains(a.DishName))
-            .Select(a => Build(a, anchors, basesById, defsById, stockById, pantry, cookingLevel))
+            .Select(a => Build(a, anchors, basesById, defsById, stockById, pantry, cookingLevel, order))
             .OrderByDescending(o => o.CanMake)
             .ThenByDescending(o => o.Preview?.Quality ?? 0f)
             .ToList();
@@ -46,8 +47,9 @@ public static class QuickMealPlanner
         IReadOnlyDictionary<string, BaseItemDef> basesById,
         IReadOnlyDictionary<string, IngredientDef> defsById,
         IReadOnlyDictionary<string, int> stockById,
-        IReadOnlyDictionary<IngredientDef, int> pantry,
-        int cookingLevel)
+        Pantry pantry,
+        int cookingLevel,
+        PickOrder order)
     {
         var baseItem = basesById[anchor.BaseItemId];
         var portions = anchor.Portions
@@ -66,9 +68,11 @@ public static class QuickMealPlanner
         if (ingredientCount > baseItem.IngredientSlotsForLevel(cookingLevel))
             return Blocked(anchor, baseItem, cost, portions, "Perícia insuficiente para tantos ingredientes");
 
-        // Sessão descartável só para prever o resultado: o construtor de CookingSession copia
-        // a despensa, então nada do que acontece aqui toca o estoque real do Sim.
-        var session = new CookingSession(pantry, cookingLevel);
+        // Sessão descartável só para prever o resultado, sobre uma cópia da despensa: nada do
+        // que acontece aqui toca o estoque real do Sim. Usa os mesmos lotes, na mesma ordem
+        // que o preparo de verdade vai usar — a qualidade prevista já conta o que está passado.
+        var session = new CookingSession(pantry.Clone(), cookingLevel);
+        session.SetPickOrder(order);
         session.SetBase(baseItem);
         foreach (var (def, units) in portions)
             session.AddUnit(def, units);

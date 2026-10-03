@@ -18,7 +18,7 @@ public static class QuickMealContext
     private const float PanelWidth = 1040f;
 
     public static PanelContext Build(
-        IReadOnlyDictionary<IngredientDef, int> pantry,
+        Pantry pantry,
         IReadOnlyList<QuickMealOption> options,
         QuickMealOption selected,
         Action<QuickMealOption> onSelect,
@@ -37,7 +37,7 @@ public static class QuickMealContext
 
         var dish = selected.CanMake ? selected.Preview : null;
         var portions = selected.Portions
-                               .Select(p => (p.Def, p.Units, Have: pantry[p.Def]))
+                               .Select(p => (p.Def, p.Units, Have: pantry.UnitsOf(p.Def)))
                                .ToList();
         int missing = portions.Count(p => p.Have < p.Units);
 
@@ -101,7 +101,10 @@ public static class QuickMealContext
                         Name = p.Def.DisplayName,
                         Icon = p.Def.Icon,
                         Tint = p.Def.TintColor,
-                        Note = p.Def.IsSeasoning ? "tempero" : "ingrediente",
+                        // Passado ou estragado na despensa é o que o jogador precisa saber
+                        // antes do clique único: a qualidade prevista já desceu por causa disso.
+                        Note = PantryText.Spoilage(pantry, p.Def)
+                               ?? (p.Def.IsSeasoning ? "tempero" : "ingrediente"),
                         Tally = $"{p.Have} / {p.Units}",
                         Met = p.Have >= p.Units,
                     }).ToList(),
@@ -122,9 +125,9 @@ public static class QuickMealContext
 
             Readout = DishReadout.Of(dish,
                 selected.CanMake ? "Qualidade prevista" : "Indisponível",
-                selected.CanMake
-                    ? "O número previsto é o número que o prato vai ter."
-                    : selected.Blocker),
+                !selected.CanMake ? selected.Blocker
+                : dish.PoisoningChance > 0f ? DishReadout.PoisoningWarning(dish)
+                : "O número previsto é o número que o prato vai ter."),
 
             Commit = new CommitAction
             {

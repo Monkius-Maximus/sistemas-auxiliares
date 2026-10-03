@@ -74,6 +74,12 @@ doura (concentra o sabor, salva comida insossa) e engorda; a panela funde sabore
 e hidrata; a tigela crua expõe choques e estrago, mas mantém a água do alimento. Mesmo conteúdo,
 nota e necessidades diferentes — o `BalanceCheck` imprime a comparação.
 
+A comida **estraga**. A despensa guarda lotes com idade, e cada ingrediente tem sua vida útil
+no `.tres`: brócolis aguenta poucos dias, batata semanas, sal para sempre. Por padrão o Sim usa
+os mais velhos primeiro; o jogador pode inverter e trocar nota agora por desperdício depois.
+Ingrediente estragado no prato gera risco de intoxicação — o calor corta, a salada crua não —
+e nenhuma receita conhecida salva comida podre.
+
 O teto de perícia é `0.50 + 0.05 × nível`. Nível 0 nunca passa de 50% mesmo acertando tudo;
 o painel avisa quando é a perícia que está segurando a nota, em vez de deixar o jogador
 otimizar às cegas.
@@ -124,7 +130,6 @@ Poucas de propósito — são atalhos premiados, não o conteúdo principal.
 
 | O quê | Onde | Estado |
 |---|---|---|
-| Frescor real dos itens da despensa | `CookingSession.FreshnessOf` | fixo em `1.0` |
 | Moodlet e motivos do Sim ao comer | `CookedDish.UnhappinessRelief` / `BoredomRelief` / `MoodletMinutes` | fórmulas prontas, sem consumidor |
 | Prato como item persistente do mundo | `CookingSession.Cook` retorna e descarta | precisa criar o item |
 | Reação individual por traço de personalidade | ainda não existe | usar `IngredientDef.Group` + `DominantAxis` |

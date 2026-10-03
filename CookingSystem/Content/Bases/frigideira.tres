@@ -20,6 +20,12 @@ Stat = 3
 Value = 0.7
 Description = "Resseca (−30% sede saciada)"
 
+[sub_resource type="Resource" id="Resource_48mmt"]
+script = ExtResource("1_n74wa")
+Stat = 5
+Value = 0.6
+Description = "Calor alto mata parte das bactérias (intoxicação −40%)"
+
 [resource]
 script = ExtResource("1_3n3s5")
 Id = "frigideira"
@@ -28,4 +34,4 @@ Method = 1
 FormName = "Fritada"
 AllowedGroups = Array[int]([1, 2, 4, 5, 7, 8])
 TintColor = Color(0.5411765, 0.5411765, 0.5411765, 1)
-Modifiers = Array[ExtResource("1_n74wa")]([SubResource("Resource_n74wa"), SubResource("Resource_jlca5"), SubResource("Resource_owwq2")])
+Modifiers = Array[ExtResource("1_n74wa")]([SubResource("Resource_n74wa"), SubResource("Resource_jlca5"), SubResource("Resource_owwq2"), SubResource("Resource_48mmt")])

@@ -37,17 +37,19 @@ public partial class BalanceCheck : SceneTree
 
     public override void _Initialize()
     {
-        var pantry = ContentLibrary.StartingPantry();
+        // Despensa fresca, clonada por caso: a sessão debita a despensa que recebe, e um caso
+        // não pode gastar o estoque do seguinte.
+        var pantry = ContentLibrary.FreshPantry();
         var bases = ContentLibrary.Bases().ToDictionary(b => b.Id, b => b);
         var anchors = ContentLibrary.Anchors();
-        var defs = pantry.Keys.ToDictionary(d => d.Id, d => d);
+        var defs = pantry.Defs.ToDictionary(d => d.Id, d => d);
 
         GD.Print($"{"caso",-30}{"nota",6}{"temp",7}{"equi",7}{"harm",7}{"vari",7}{"fres",7}  esperado");
         GD.Print(new string('-', 88));
 
         foreach (var (name, baseId, items, expected) in Cases)
         {
-            var session = new CookingSession(pantry, Level);
+            var session = new CookingSession(pantry.Clone(), Level);
             session.SetBase(bases[baseId]);
             foreach (var (id, units) in items)
                 session.AddUnit(defs[id], units);
@@ -61,6 +63,8 @@ public partial class BalanceCheck : SceneTree
 
         GD.Print();
         PrintVesselComparison(pantry, bases, anchors, defs);
+        GD.Print();
+        PrintFreshness(bases, anchors, defs);
         GD.Print();
         PrintSkillCurve(pantry, bases, anchors, defs);
         Quit();
@@ -80,7 +84,7 @@ public partial class BalanceCheck : SceneTree
     };
 
     private static void PrintVesselComparison(
-        Dictionary<IngredientDef, int> pantry,
+        Pantry pantry,
         Dictionary<string, BaseItemDef> bases,
         List<RecipeAnchor> anchors,
         Dictionary<string, IngredientDef> defs)
@@ -92,7 +96,7 @@ public partial class BalanceCheck : SceneTree
             var row = $"{name,-34}";
             foreach (var baseId in order)
             {
-                var session = new CookingSession(pantry, Level);
+                var session = new CookingSession(pantry.Clone(), Level);
                 session.SetBase(bases[baseId]);
                 bool fits = items.All(i => defs[i.Id].IsSeasoning || bases[baseId].Accepts(defs[i.Id].Group));
                 if (!fits) { row += $"{"—",12}"; continue; }
@@ -104,9 +108,40 @@ public partial class BalanceCheck : SceneTree
         }
     }
 
+    /// <summary>
+    /// A omelete completa com os ovos em idades diferentes, e o mesmo tomate envelhecido na
+    /// tigela crua e na panela. Confere três coisas: frescor puxa a nota pela massa, o nome
+    /// avisa, e o calor corta o risco de intoxicação que o cru deixa inteiro.
+    /// </summary>
+    private static void PrintFreshness(
+        Dictionary<string, BaseItemDef> bases,
+        List<RecipeAnchor> anchors,
+        Dictionary<string, IngredientDef> defs)
+    {
+        GD.Print($"{"frescor",-34}{"nota",6}{"fres",7}{"intox",7}  nome");
+        var cases = new (string Name, string Base, string AgedId, float Age, (string Id, int Units)[] Items)[]
+        {
+            ("omelete, ovos frescos",     "frigideira", "ovo",    0f,  new[] { ("ovo", 20), ("queijo", 8), ("cebolinha", 4), ("sal", 2), ("pimenta", 1) }),
+            ("omelete, ovos passados",    "frigideira", "ovo",    28f, new[] { ("ovo", 20), ("queijo", 8), ("cebolinha", 4), ("sal", 2), ("pimenta", 1) }),
+            ("omelete, ovos estragados",  "frigideira", "ovo",    34f, new[] { ("ovo", 20), ("queijo", 8), ("cebolinha", 4), ("sal", 2), ("pimenta", 1) }),
+            ("tomate estragado, cru",     "tigela",     "tomate", 9f,  new[] { ("tomate", 10), ("queijo", 10), ("ervas", 2), ("sal", 1) }),
+            ("tomate estragado, fervido", "panela",     "tomate", 9f,  new[] { ("tomate", 10), ("batata", 10), ("ervas", 2), ("sal", 1) }),
+        };
+        foreach (var (name, baseId, agedId, age, items) in cases)
+        {
+            var pantry = new Pantry(defs.Values.Select(d => (d, 40, d.Id == agedId ? age : 0f)));
+            var session = new CookingSession(pantry, Level);
+            session.SetBase(bases[baseId]);
+            foreach (var (id, units) in items)
+                session.AddUnit(defs[id], units);
+            var dish = DishEvaluator.Evaluate(session, anchors);
+            GD.Print($"{name,-34}{dish.Quality,6:0.00}{dish.FreshnessScore,7:0.00}{dish.PoisoningChance,7:P0}  {dish.Name}");
+        }
+    }
+
     /// <summary>O mesmo prato ótimo em vários níveis: confere se a perícia é gargalo de verdade.</summary>
     private static void PrintSkillCurve(
-        Dictionary<IngredientDef, int> pantry,
+        Pantry pantry,
         Dictionary<string, BaseItemDef> bases,
         List<RecipeAnchor> anchors,
         Dictionary<string, IngredientDef> defs)
@@ -114,7 +149,7 @@ public partial class BalanceCheck : SceneTree
         GD.Print("omelete completa por nível de culinária:");
         foreach (int level in new[] { 0, 3, 6, 10 })
         {
-            var session = new CookingSession(pantry, level);
+            var session = new CookingSession(pantry.Clone(), level);
             session.SetBase(bases["frigideira"]);
             foreach (var (id, units) in new[] { ("ovo", 20), ("queijo", 8), ("cebolinha", 4), ("sal", 2), ("pimenta", 1) })
             {

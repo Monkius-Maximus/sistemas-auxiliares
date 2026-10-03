@@ -23,4 +23,6 @@ DisplayName = "Batata"
 Group = 7
 Nutrition = SubResource("Resource_483i6")
 Flavor = SubResource("Resource_l8plj")
+FreshDays = 21.0
+RotDays = 45.0
 TintColor = Color(0.7882353, 0.65882355, 0.41568628, 1)
