@@ -69,6 +69,11 @@ que é como cozinhar funciona de verdade.
 | `VarietyScore` | número de grupos alimentares distintos, ótimo em 3 | ingrediente único, ou tudo jogado dentro |
 | `FreshnessScore` | penalidade proporcional à **massa** estragada | metade do prato é ingrediente podre |
 
+O **recipiente** muda o prato por modificadores declarados no próprio `.tres`: a frigideira
+doura (concentra o sabor, salva comida insossa) e engorda; a panela funde sabores que brigariam
+e hidrata; a tigela crua expõe choques e estrago, mas mantém a água do alimento. Mesmo conteúdo,
+nota e necessidades diferentes — o `BalanceCheck` imprime a comparação.
+
 O teto de perícia é `0.50 + 0.05 × nível`. Nível 0 nunca passa de 50% mesmo acertando tudo;
 o painel avisa quando é a perícia que está segurando a nota, em vez de deixar o jogador
 otimizar às cegas.

@@ -37,6 +37,12 @@ public sealed class CookingSession
     public int CookingLevel { get; }
     public BaseItemDef Base { get; private set; }
 
+    /// <summary>
+    /// Tudo que mexe neste preparo além dos ingredientes. Hoje só o recipiente contribui;
+    /// traço do Sim, perícia ou fogão entram somando suas listas aqui, sem tocar no avaliador.
+    /// </summary>
+    public ModifierStack Modifiers => Base is null ? ModifierStack.Empty : new ModifierStack(Base.Modifiers);
+
     public IReadOnlyCollection<IngredientStack> Ingredients => _ingredients.Values;
     public IReadOnlyCollection<IngredientStack> Seasonings => _seasonings.Values;
 

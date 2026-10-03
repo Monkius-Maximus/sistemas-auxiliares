@@ -1,6 +1,25 @@
 [gd_resource type="Resource" script_class="BaseItemDef" format=3]
 
 [ext_resource type="Script" path="res://Data/BaseItemDef.cs" id="1_6udpt"]
+[ext_resource type="Script" path="res://Data/DishModifier.cs" id="1_vi1oj"]
+
+[sub_resource type="Resource" id="Resource_vi1oj"]
+script = ExtResource("1_vi1oj")
+Stat = 1
+Value = 1.3
+Description = "Cru: nada se funde (choques +30%)"
+
+[sub_resource type="Resource" id="Resource_d8ui6"]
+script = ExtResource("1_vi1oj")
+Stat = 2
+Value = 1.5
+Description = "Cru: ingrediente velho não se esconde (estrago +50%)"
+
+[sub_resource type="Resource" id="Resource_6r68n"]
+script = ExtResource("1_vi1oj")
+Stat = 3
+Value = 1.2
+Description = "Mantém a água do alimento (+20% sede saciada)"
 
 [resource]
 script = ExtResource("1_6udpt")
@@ -10,3 +29,4 @@ FormName = "Salada"
 BaseIngredientSlots = 3
 AllowedGroups = Array[int]([5, 6, 4, 8])
 TintColor = Color(0.6901961, 0.6431373, 0.54901963, 1)
+Modifiers = Array[ExtResource("1_vi1oj")]([SubResource("Resource_vi1oj"), SubResource("Resource_d8ui6"), SubResource("Resource_6r68n")])

@@ -114,7 +114,6 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 | Primitivos `grid.dual` e `text` | `addons/context_panel/PanelPrimitives.cs` | no mock, sem sistema que os use |
 | Bulk +5 no stepper | — | dispensado: segurar A/+ já repete acelerando, e dois jeitos de fazer a mesma coisa violam o estilo |
 | Segundo contexto real (loja/bancada) | não existe | o shell aguenta e já é addon; falta o sistema por trás |
-| Stack de modificadores | não existe | traço/perícia mexendo no avaliador sem ele saber que existem |
 
 NPCs devem cozinhar com este mesmo código: perícia baixa produz prato ruim por ter menos
 slots e teto menor, não por uma tabela separada de "pratos de NPC".
@@ -131,8 +130,29 @@ em `Cooking/`, em C#, testável pelo `BalanceCheck`. Lógica em arquivo de dados
 esses jogos pagam caro (depuração sem tipos, avaliação de script no late-game) e que este
 sistema não precisa dar: são poucos avaliadores e profundos, não milhares de combinações.
 
-Quando um traço de personalidade ou uma perícia precisar mexer no resultado, o caminho é um
-**stack de modificadores** que o conteúdo alimenta e o avaliador soma — não script no `.tres`.
+## Modificadores
+
+O que mexe no prato além dos ingredientes entra como `DishModifier` (`Data/`), resolvido por
+`ModifierStack` (`Cooking/`): `(base + Σ somas) × Π multiplicadores`, sem prioridade nem
+sobrescrita. As alavancas são um conjunto fechado (`DishStat`): intensidade de sabor, penalidade
+de choque, penalidade de estrago, sede, gordura. Conteúdo combina alavancas; não inventa novas.
+
+Hoje quem contribui é o **recipiente** (`BaseItemDef.Modifiers`, nos `.tres` de `Content/Bases/`):
+
+| Recipiente | Domínio | Efeitos |
+|---|---|---|
+| Frigideira | salva o insosso, engorda | intensidade ×1.08 · gordura ×1.25 · sede ×0.7 |
+| Panela | salva o que briga, hidrata | choques ×0.75 · intensidade ×0.85 · sede ×1.6 |
+| Tigela | exige precisão, mantém a água | choques ×1.3 · estrago ×1.5 · sede ×1.2 |
+
+A regra de balanceamento: **nenhum recipiente vence todos os casos** da tabela "mesmo conteúdo,
+recipientes diferentes" do `BalanceCheck`. Recipiente que domina vira escolha falsa. A
+intensidade da frigideira foi baixada de 1.15 para 1.08 porque punia bacon com ovo — o prato
+frito mais clássico não pode piorar no próprio recipiente.
+
+Traço do Sim, perícia ou fogão entram somando suas listas em `CookingSession.Modifiers`, sem
+tocar no avaliador. Cada efeito tem uma `Description` que o painel mostra ao escolher a fonte:
+efeito que o jogador não lê antes de escolher é efeito que ele não usa.
 
 ## Navegação do painel
 

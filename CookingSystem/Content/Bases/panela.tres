@@ -1,6 +1,24 @@
 [gd_resource type="Resource" script_class="BaseItemDef" format=3]
 
 [ext_resource type="Script" path="res://Data/BaseItemDef.cs" id="1_qd1q2"]
+[ext_resource type="Script" path="res://Data/DishModifier.cs" id="1_y23gj"]
+
+[sub_resource type="Resource" id="Resource_y23gj"]
+script = ExtResource("1_y23gj")
+Stat = 1
+Value = 0.75
+Description = "Fervura funde sabores que brigariam (choques −25%)"
+
+[sub_resource type="Resource" id="Resource_ndnwl"]
+script = ExtResource("1_y23gj")
+Value = 0.85
+Description = "A água dilui o tempero (−15% intensidade)"
+
+[sub_resource type="Resource" id="Resource_vxsyp"]
+script = ExtResource("1_y23gj")
+Stat = 3
+Value = 1.6
+Description = "Caldo hidrata (+60% sede saciada)"
 
 [resource]
 script = ExtResource("1_qd1q2")
@@ -12,3 +30,4 @@ BaseIngredientSlots = 3
 SeasoningSlots = 3
 AllowedGroups = Array[int]([2, 5, 7, 8])
 TintColor = Color(0.43529412, 0.47843137, 0.5411765, 1)
+Modifiers = Array[ExtResource("1_y23gj")]([SubResource("Resource_y23gj"), SubResource("Resource_ndnwl"), SubResource("Resource_vxsyp")])

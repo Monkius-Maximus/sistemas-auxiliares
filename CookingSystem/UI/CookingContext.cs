@@ -45,8 +45,7 @@ public static class CookingContext
                 Title = "Recipiente",
                 Body = new Picker
                 {
-                    Note = $"{session.Base.FormName} · {session.IngredientSlots} ingredientes · " +
-                           $"{session.SeasoningSlots} temperos",
+                    Note = VesselNote(session),
                     Options = bases.Select(b => new PickerOption
                     {
                         Name = b.DisplayName,
@@ -159,6 +158,22 @@ public static class CookingContext
             OnAdd = () => session.AddUnit(def),
             OnRemove = () => session.RemoveUnit(def),
         };
+    }
+
+    /// <summary>
+    /// O recipiente se explica na hora da escolha: o que comporta e o que faz com o prato.
+    /// Efeito que o jogador não consegue ler antes de escolher é efeito que ele não usa.
+    /// </summary>
+    private static string VesselNote(CookingSession session)
+    {
+        var lines = new List<string>
+        {
+            $"{session.Base.FormName} · {session.IngredientSlots} ingredientes · {session.SeasoningSlots} temperos",
+        };
+        lines.AddRange(session.Modifiers.All
+                              .Where(m => m.Description.Length > 0)
+                              .Select(m => "· " + m.Description));
+        return string.Join("\n", lines);
     }
 
     private static string Headline(CookedDish dish) =>

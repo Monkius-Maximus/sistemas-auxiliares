@@ -27,6 +27,12 @@ public partial class BaseItemDef : Resource
 
     [Export] public Color TintColor { get; set; } = Colors.White;
 
+    /// <summary>
+    /// O que este recipiente faz com o prato. Frigideira doura, panela funde, tigela expõe:
+    /// a escolha do recipiente é uma decisão de cozinha, não só de quantos slots cabem.
+    /// </summary>
+    [Export] public Godot.Collections.Array<DishModifier> Modifiers { get; set; } = new();
+
     public bool Accepts(FoodGroup group) => AllowedGroups.Contains((int)group);
 
     /// <summary>

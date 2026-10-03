@@ -60,6 +60,7 @@ public static class DishEvaluator
             throw new InvalidOperationException("Sessão sem ingredientes não pode ser avaliada.");
 
         var stacks = session.Ingredients.Concat(session.Seasonings).ToList();
+        var mods = session.Modifiers;
 
         int totalUnits = stacks.Sum(s => s.Units);
         float totalWeight = stacks.Sum(s => s.Weight);
@@ -86,16 +87,19 @@ public static class DishEvaluator
 
         // Normaliza por unidade, não por peso: é isso que faz o tempero (potência alta,
         // poucas unidades) empurrar o sabor sem inflar o denominador.
-        var norm = raw.Select(v => v / totalUnits).ToArray();
+        // O recipiente escala o vetor inteiro, não um eixo: dourar concentra todos os sabores
+        // e a água dilui todos. Equilíbrio e harmonia, que são proporções, não mudam com isso.
+        float concentration = mods.Apply(DishStat.FlavorIntensity, 1f);
+        var norm = raw.Select(v => v / totalUnits * concentration).ToArray();
         float intensity = norm.Sum();
 
         int dominantIndex = Array.IndexOf(norm, norm.Max());
 
         float seasoning = ScoreIntensity(intensity);
         float balance = ScoreBalance(norm, intensity);
-        float harmony = ScoreHarmony(norm, intensity);
+        float harmony = ScoreHarmony(norm, intensity, mods.Apply(DishStat.ClashPenalty, 1f));
         float variety = ScoreVariety(session.Ingredients);
-        float freshness = ScoreFreshness(stacks, totalWeight);
+        float freshness = ScoreFreshness(stacks, totalWeight, mods.Apply(DishStat.SpoilagePenalty, 1f));
 
         float product = seasoning * balance * harmony * variety * freshness;
 
@@ -112,10 +116,10 @@ public static class DishEvaluator
             Name = anchor?.DishName ?? DishNamer.Generate(session, MinFreshness(stacks)),
             Calories = calories,
             Protein = protein,
-            Lipids = lipids,
+            Lipids = mods.Apply(DishStat.Lipids, lipids),
             Carbs = carbs,
             Hunger = hunger,
-            Thirst = thirst,
+            Thirst = mods.Apply(DishStat.Thirst, thirst),
             Weight = totalWeight,
             Cost = cost,
             Quality = quality,
@@ -153,7 +157,7 @@ public static class DishEvaluator
         return Math.Max(BalanceFloor, 1f - MathF.Pow(deviation, DominantShareExponent));
     }
 
-    private static float ScoreHarmony(float[] norm, float intensity)
+    private static float ScoreHarmony(float[] norm, float intensity, float clashScale)
     {
         if (intensity <= 0f)
             return 0f;
@@ -168,7 +172,7 @@ public static class DishEvaluator
                 continue;
 
             float ramp = Math.Min(1f, (weaker - ClashOnset) / (ClashFull - ClashOnset));
-            harmony -= penalty * ramp;
+            harmony -= penalty * clashScale * ramp;
         }
         return Math.Max(0f, harmony);
     }
@@ -183,11 +187,11 @@ public static class DishEvaluator
     /// Frescor não é média: é penalidade proporcional à massa estragada. Um pedaço
     /// pequeno de queijo podre num prato grande estraga pouco; metade do prato, muito.
     /// </summary>
-    private static float ScoreFreshness(IReadOnlyList<IngredientStack> stacks, float totalWeight)
+    private static float ScoreFreshness(IReadOnlyList<IngredientStack> stacks, float totalWeight, float spoilageScale)
     {
         float score = 1f;
         foreach (var stack in stacks)
-            score -= (stack.Weight / totalWeight) * (1f - stack.Freshness);
+            score -= (stack.Weight / totalWeight) * (1f - stack.Freshness) * spoilageScale;
         return Math.Max(0f, score);
     }
 

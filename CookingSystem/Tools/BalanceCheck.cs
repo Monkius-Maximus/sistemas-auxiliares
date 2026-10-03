@@ -60,8 +60,48 @@ public partial class BalanceCheck : SceneTree
         }
 
         GD.Print();
+        PrintVesselComparison(pantry, bases, anchors, defs);
+        GD.Print();
         PrintSkillCurve(pantry, bases, anchors, defs);
         Quit();
+    }
+
+    /// <summary>
+    /// O mesmo conteúdo em cada recipiente que o aceita. Se as três colunas saírem iguais,
+    /// os modificadores do recipiente pararam de chegar ao avaliador.
+    /// </summary>
+    private static readonly (string Name, (string Id, int Units)[] Items)[] VesselCases =
+    {
+        ("legumes, tempero médio",   new[] { ("brocolis", 15), ("tomate", 10), ("sal", 2) }),
+        ("legumes, tempero forte",   new[] { ("brocolis", 15), ("tomate", 10), ("sal", 3), ("pimenta", 1) }),
+        ("doce × salgado (choque)",  new[] { ("tomate", 20), ("acucar", 2), ("sal", 2) }),
+        ("batata + cebolinha + sal", new[] { ("batata", 20), ("cebolinha", 5), ("sal", 3) }),
+        ("batata + cebolinha, pouco sal", new[] { ("batata", 20), ("cebolinha", 5), ("sal", 1) }),
+    };
+
+    private static void PrintVesselComparison(
+        Dictionary<IngredientDef, int> pantry,
+        Dictionary<string, BaseItemDef> bases,
+        List<RecipeAnchor> anchors,
+        Dictionary<string, IngredientDef> defs)
+    {
+        string[] order = { "frigideira", "panela", "tigela" };
+        GD.Print($"{"mesmo conteúdo, recipientes diferentes",-34}" + string.Concat(order.Select(o => $"{o,12}")));
+        foreach (var (name, items) in VesselCases)
+        {
+            var row = $"{name,-34}";
+            foreach (var baseId in order)
+            {
+                var session = new CookingSession(pantry, Level);
+                session.SetBase(bases[baseId]);
+                bool fits = items.All(i => defs[i.Id].IsSeasoning || bases[baseId].Accepts(defs[i.Id].Group));
+                if (!fits) { row += $"{"—",12}"; continue; }
+                foreach (var (id, units) in items)
+                    session.AddUnit(defs[id], units);
+                row += $"{DishEvaluator.Evaluate(session, anchors).Quality,12:0.00}";
+            }
+            GD.Print(row);
+        }
     }
 
     /// <summary>O mesmo prato ótimo em vários níveis: confere se a perícia é gargalo de verdade.</summary>
