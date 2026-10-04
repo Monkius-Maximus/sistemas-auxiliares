@@ -23,7 +23,9 @@ public static class QuickMealContext
         QuickMealOption selected,
         Action<QuickMealOption> onSelect,
         Action onPrepare,
-        Action onManual)
+        Action onManual,
+        Action onFridge,
+        int mealsReady)
     {
         ArgumentNullException.ThrowIfNull(pantry);
         ArgumentNullException.ThrowIfNull(options);
@@ -61,6 +63,14 @@ public static class QuickMealContext
                             Note = "Abre o painel completo: você escolhe recipiente e quantidades.",
                             OnUse = onManual,
                         },
+                        new Verb
+                        {
+                            Name = "Comer da geladeira…",
+                            Note = mealsReady == 0
+                                ? "Nada pronto ainda. O que você cozinhar e sobrar vai para lá."
+                                : $"{mealsReady} {(mealsReady == 1 ? "refeição pronta" : "refeições prontas")}: comer sem cozinhar.",
+                            OnUse = onFridge,
+                        },
                     },
                 },
             },
@@ -78,10 +88,13 @@ public static class QuickMealContext
                         Name = option.Name,
                         Icon = option.Base.Icon,
                         Tint = option.Base.TintColor,
-                        Sub = option.CanMake
-                            ? $"{option.Preview.Quality:P0} · custo {option.Cost}"
-                            : option.Blocker,
-                        Warn = !option.CanMake,
+                        // Risco de intoxicação vem antes do custo: o menu rápido é o caminho
+                        // de um clique, e o jogador não pode descobrir o tomate podre depois.
+                        Sub = !option.CanMake ? option.Blocker
+                            : option.Preview.PoisoningChance > 0f
+                                ? $"{option.Preview.Quality:P0} · {option.Preview.PoisoningChance:P0} intox."
+                                : $"{option.Preview.Quality:P0} · custo {option.Cost}",
+                        Warn = !option.CanMake || option.Preview.PoisoningChance > 0f,
                         Selected = ReferenceEquals(option, selected),
                         // Opção bloqueada continua clicável: é na lista de porções que o
                         // jogador descobre o que falta, e é isso que o manda para a loja.

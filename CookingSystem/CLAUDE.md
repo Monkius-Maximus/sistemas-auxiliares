@@ -15,6 +15,9 @@ Cooking/   Modelo. Nenhuma chamada de API do Godot.
            DishEvaluator + DishNamer (puros) · ModifierStack · CookedDish (imutável) ·
            IngredientStack · QuickMealPlanner + QuickMealOption (menu rápido, puros)
 
+Household/ A casa: Household (relógio do mundo) · Meal (prato pronto com porções) ·
+           Sim (fome, sede, humor por moodlets). Nenhuma chamada de API do Godot.
+
 Content/   O conteúdo, em .tres: Ingredients/ · Bases/ · Anchors/.
            ContentLibrary lê as pastas — ingrediente novo é arquivo novo, não linha de C#.
 
@@ -27,7 +30,8 @@ addons/context_panel/
            Contrato próprio em addons/context_panel/README.md.
 
 UI/        As definições de contexto deste sistema: CookingContext (painel manual) ·
-           QuickMealContext (menu rápido) · DishReadout · CookingDemo. Zero estado próprio.
+           QuickMealContext (menu rápido) · FridgeContext (geladeira: comer) · DishReadout ·
+           PantryText · CookingDemo. Zero estado próprio.
 
 Tools/     BalanceCheck — roda o avaliador real sobre casos de referência.
 Scenes/    CookingDemo.tscn — cena principal.
@@ -71,7 +75,7 @@ Cozinhar, comprar e construir devem ser definições de contexto, não janelas n
    devolvem são `internal` e só a sessão as chama. O tempo também passa pela sessão
    (`AdvanceTime`), porque passar o tempo muda o que o painel mostra e precisa disparar `Changed`.
 
-4. **`Cooking/` não importa `Godot`.** É o que mantém o modelo testável fora do engine.
+4. **`Cooking/` e `Household/` não importam `Godot`.** É o que mantém o modelo testável fora do engine.
    Se precisar de `GD.Print` para debugar, o print vai na UI ou em `Tools/`.
 
 5. **Nenhuma lista de pratos autorada à mão.** Nome, custo e qualidade são sempre derivados —
@@ -109,9 +113,9 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 
 | O quê | Onde | Estado |
 |---|---|---|
-| Prato como item persistente | `CookingSession.Cook` retorna e descarta | falta criar o item |
-| Moodlet / motivos ao comer | `CookedDish.UnhappinessRelief` etc. | fórmulas prontas, sem consumidor |
-| Intoxicação ao comer | `CookedDish.PoisoningChance` | chance calculada; falta quem come sortear e aplicar |
+| Fome e sede zeradas não têm consequência | `Sim` | o Sim chega a 0 e nada acontece; falta desmaio/morte/moodlet de fome |
+| `UnhappinessRelief` / `BoredomRelief` | `CookedDish` | fórmulas antigas sem consumidor; o humor de comer usa os moodlets do `Sim` |
+| Mais de um Sim na casa | `Household` | um Sim só; refeição em grupo e porções divididas entram aqui |
 | Armazenamento (geladeira × bancada × geladeira quebrada) | `Pantry.Age` | tudo envelhece como em geladeira; entra como multiplicador do tempo |
 | Reação por traço de personalidade | não existe | usar `Group` + `DominantAxis` |
 | Ícones de verdade | `IngredientDef.Icon` | campo pronto no `.tres`, sem arte — desenha o `TintColor` |
@@ -158,6 +162,28 @@ O `BalanceCheck` calibra com despensa fresca (`ContentLibrary.FreshPantry`) e te
 própria de frescor. A cozinha do demo (`StartingPantry`) começa com alguns lotes velhos de
 propósito, para o sistema aparecer na primeira tela.
 
+## Comer
+
+O preparo termina numa **refeição** (`Meal`) que vai para a geladeira da `Household`:
+
+- **Porções derivadas da massa** (`peso / 0.10 kg`, de 1 a 8) — nunca autoradas. A omelete rende 3,
+  o caldo 4.
+- **Sobra estraga** com curva própria: fresca 2 dias, estragada no 5º. Passada perde 20% da nota;
+  estragada fica com 35% e risco de intoxicação de pelo menos 75% — cozinhar não salva o que
+  apodreceu depois de pronto.
+- **O Sim** tem fome e sede de 0 a 100, caindo por hora, e humor pela soma dos moodlets. Uma porção
+  soma `fome do prato / porções × 3.2` (omelete ≈ +46). O moodlet sai da qualidade com os mesmos
+  cortes do painel e **substitui** o de comida anterior em vez de empilhar.
+- **Comer é o único sorteio do sistema** (`Household.Eat`). Intoxicado, o Sim fica "Enjoado"
+  (−35 por 6 h) e devolve metade do que comeu. Tudo antes disso é determinístico, por isso a
+  geladeira mostra fome, sede e humor *depois* de comer antes do clique.
+- **`Household.AdvanceHours` é o relógio do mundo**: envelhece despensa e sobras e cansa o Sim na
+  mesma chamada. O relógio do jogo real chama isto; no demo são os botões +4 h / +1 dia.
+
+Cada recipiente gera um perfil de refeição que o Sim sente: frito enche e não mata sede, sopa faz
+as duas coisas, salada mata a sede. A água do caldo é uma **soma** no stack (`sede +16`), não um
+multiplicador — multiplicar a sede quase nula de batata e cogumelo não hidratava nada.
+
 ## Modificadores
 
 O que mexe no prato além dos ingredientes entra como `DishModifier` (`Data/`), resolvido por
@@ -171,7 +197,7 @@ Hoje quem contribui é o **recipiente** (`BaseItemDef.Modifiers`, nos `.tres` de
 | Recipiente | Domínio | Efeitos |
 |---|---|---|
 | Frigideira | salva o insosso, engorda | intensidade ×1.08 · gordura ×1.25 · sede ×0.7 |
-| Panela | salva o que briga, hidrata | choques ×0.75 · intensidade ×0.85 · sede ×1.6 |
+| Panela | salva o que briga, hidrata | choques ×0.75 · intensidade ×0.85 · sede +16 |
 | Tigela | exige precisão, mantém a água | choques ×1.3 · estrago ×1.5 · sede ×1.2 |
 
 A regra de balanceamento: **nenhum recipiente vence todos os casos** da tabela "mesmo conteúdo,

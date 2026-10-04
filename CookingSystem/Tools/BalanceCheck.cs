@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using LifeSim.Household;
 
 namespace LifeSim.Cooking;
 
@@ -65,6 +66,8 @@ public partial class BalanceCheck : SceneTree
         PrintVesselComparison(pantry, bases, anchors, defs);
         GD.Print();
         PrintFreshness(bases, anchors, defs);
+        GD.Print();
+        PrintServings(bases, anchors, defs);
         GD.Print();
         PrintSkillCurve(pantry, bases, anchors, defs);
         Quit();
@@ -136,6 +139,30 @@ public partial class BalanceCheck : SceneTree
                 session.AddUnit(defs[id], units);
             var dish = DishEvaluator.Evaluate(session, anchors);
             GD.Print($"{name,-34}{dish.Quality,6:0.00}{dish.FreshnessScore,7:0.00}{dish.PoisoningChance,7:P0}  {dish.Name}");
+        }
+    }
+
+    /// <summary>
+    /// O que uma porção faz com um Sim faminto (fome e sede em 30). Confere a escala das
+    /// necessidades: uma porção de prato bom deve encher boa parte da fome, não toda nem nada.
+    /// </summary>
+    private static void PrintServings(
+        Dictionary<string, BaseItemDef> bases,
+        List<RecipeAnchor> anchors,
+        Dictionary<string, IngredientDef> defs)
+    {
+        GD.Print($"{"uma porção, Sim com fome e sede em 30",-40}{"porç",5}{"fome",7}{"sede",7}  moodlet");
+        foreach (var (name, baseId, items, _) in Cases.Where(c => c.Expected is "sólido" or "excelente"))
+        {
+            var session = new CookingSession(ContentLibrary.FreshPantry(), Level);
+            session.SetBase(bases[baseId]);
+            foreach (var (id, units) in items)
+                session.AddUnit(defs[id], units);
+
+            var meal = new Meal(DishEvaluator.Evaluate(session, anchors));
+            var sim = new Sim("teste", 30f, 30f);
+            GD.Print($"{name,-40}{meal.TotalServings,5}{sim.HungerAfter(meal) - 30f,7:+0;-0}" +
+                     $"{sim.ThirstAfter(meal) - 30f,7:+0;-0}  {Sim.MoodletFor(meal).Name}");
         }
     }
 

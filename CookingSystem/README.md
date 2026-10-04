@@ -80,6 +80,11 @@ os mais velhos primeiro; o jogador pode inverter e trocar nota agora por desperd
 Ingrediente estragado no prato gera risco de intoxicação — o calor corta, a salada crua não —
 e nenhuma receita conhecida salva comida podre.
 
+O prato pronto vira **refeição com porções** na geladeira, e a sobra também estraga. Um Sim
+com fome, sede e humor come uma porção por vez: a geladeira mostra o efeito antes do clique, e
+só no momento de comer a intoxicação é sorteada. É o segundo contexto do mesmo painel — o
+primeiro que não é preparo.
+
 O teto de perícia é `0.50 + 0.05 × nível`. Nível 0 nunca passa de 50% mesmo acertando tudo;
 o painel avisa quando é a perícia que está segurando a nota, em vez de deixar o jogador
 otimizar às cegas.
@@ -130,8 +135,6 @@ Poucas de propósito — são atalhos premiados, não o conteúdo principal.
 
 | O quê | Onde | Estado |
 |---|---|---|
-| Moodlet e motivos do Sim ao comer | `CookedDish.UnhappinessRelief` / `BoredomRelief` / `MoodletMinutes` | fórmulas prontas, sem consumidor |
-| Prato como item persistente do mundo | `CookingSession.Cook` retorna e descarta | precisa criar o item |
 | Reação individual por traço de personalidade | ainda não existe | usar `IngredientDef.Group` + `DominantAxis` |
 | Ícones de verdade | `IngredientDef.Icon` | placeholders coloridos |
 

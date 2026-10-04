@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ContextUi;
+using LifeSim.Household;
 
 namespace LifeSim.Cooking;
 
@@ -25,21 +26,23 @@ public partial class CookingDemo : Control
     private List<RecipeAnchor> _anchors;
 
     /// <summary>
-    /// A sessão do Sim, viva enquanto o protótipo roda. Uma só: é ela que é dona da
-    /// despensa, então preparar duas vezes precisa acontecer na mesma sessão — uma sessão
-    /// nova por preparo copiaria a despensa e o estoque nunca desceria, que é o contrário
-    /// do que o botão de confirmar promete.
+    /// A casa do Sim, viva enquanto o protótipo roda: cozinha, geladeira, o Sim e o relógio.
+    /// Uma só — preparar e comer precisam acontecer sobre a mesma despensa e a mesma geladeira.
     /// </summary>
-    private CookingSession _session;
+    private Household.Household _home;
+    private CookingSession Kitchen => _home.Kitchen;
+
+    private enum View { QuickMenu, Manual, Fridge }
 
     /// <summary>
-    /// O relógio do protótipo. No jogo quem passa o tempo é o mundo; aqui é um botão, para
-    /// dar para ver a comida envelhecer sem esperar.
+    /// Qual contexto está aberto. Estado de tela sem dono no modelo, por isso mora aqui. O menu
+    /// rápido precisa ser replanejado quando o estoque muda por fora dele.
     /// </summary>
-    private int _day;
+    private View _view;
 
-    /// <summary>O menu rápido precisa ser replanejado quando o estoque muda por fora dele.</summary>
-    private bool _quickMenuOpen;
+    /// <summary>A refeição marcada na geladeira, e a frase do que aconteceu na última porção.</summary>
+    private Meal _selectedMeal;
+    private string _lastEat;
 
     private List<QuickMealOption> _options;
     private QuickMealOption _selected;
@@ -54,9 +57,10 @@ public partial class CookingDemo : Control
         _bases = ContentLibrary.Bases();
         _anchors = ContentLibrary.Anchors();
 
-        _session = new CookingSession(ContentLibrary.StartingPantry(), CookingLevel);
-        _session.SetBase(_bases[0]);
-        _session.Changed += () => _panel?.Rebuild();
+        var kitchen = new CookingSession(ContentLibrary.StartingPantry(), CookingLevel);
+        kitchen.SetBase(_bases[0]);
+        _home = new Household.Household(kitchen, new Sim("Ana", hunger: 45f, thirst: 50f));
+        _home.Changed += () => _panel?.Rebuild();
 
         OpenQuickMenu();
     }
@@ -69,25 +73,26 @@ public partial class CookingDemo : Control
     {
         // Sair do painel manual devolve à despensa o que ficou no recipiente, antes de
         // planejar: o menu precisa contar com esses ingredientes de volta.
-        _session.Clear();
+        Kitchen.Clear();
 
         // No jogo real isto vem do Sim: as âncoras que ele já descobriu.
         var known = _anchors.Select(a => a.DishName).ToList();
 
-        _quickMenuOpen = true;
-        _options = QuickMealPlanner.Plan(_session.Pantry, _bases, _anchors, known, CookingLevel, _session.PickOrder);
+        _view = View.QuickMenu;
+        _options = QuickMealPlanner.Plan(Kitchen.Pantry, _bases, _anchors, known, CookingLevel, Kitchen.PickOrder);
         _selected = _options[0];
         _definition = () => QuickMealContext.Build(
-            _session.Pantry, _options, _selected, Select, PrepareQuick, OpenManualPanel);
+            Kitchen.Pantry, _options, _selected, Select, PrepareQuick, OpenManualPanel,
+            OpenFridge, _home.Meals.Count);
 
         Render();
     }
 
     private void OpenManualPanel()
     {
-        _quickMenuOpen = false;
-        _session.Clear();
-        _definition = () => CookingContext.Build(_session, _bases, _anchors, Cook, OpenQuickMenu);
+        _view = View.Manual;
+        Kitchen.Clear();
+        _definition = () => CookingContext.Build(Kitchen, _bases, _anchors, Cook, OpenQuickMenu);
         Render();
     }
 
@@ -97,24 +102,59 @@ public partial class CookingDemo : Control
         _panel.Rebuild();
     }
 
+    /// <summary>
+    /// A geladeira. A refeição marcada é revalidada a cada redesenho: comer a última porção
+    /// tira a refeição do mundo, e o painel não pode desenhar um prato que não existe mais.
+    /// </summary>
+    private void OpenFridge()
+    {
+        _view = View.Fridge;
+        Kitchen.Clear();
+        _selectedMeal = null;
+        _lastEat = null;
+        _definition = () => FridgeContext.Build(_home, CurrentMeal(), SelectMeal, EatSelected, OpenQuickMenu, _lastEat);
+        Render();
+    }
+
+    private Meal CurrentMeal()
+    {
+        if (_selectedMeal is null || !_home.Meals.Contains(_selectedMeal))
+            _selectedMeal = _home.Meals.FirstOrDefault();
+        return _selectedMeal;
+    }
+
+    private void SelectMeal(Meal meal)
+    {
+        _selectedMeal = meal;
+        _lastEat = null;
+        _panel.Rebuild();
+    }
+
+    private void EatSelected()
+    {
+        var result = _home.Eat(CurrentMeal());
+        _lastEat = result.Poisoned
+            ? $"{_home.Sim.Name} passou mal: \"{result.Moodlet.Name}\"."
+            : $"{_home.Sim.Name} comeu {result.MealName}: fome +{result.HungerGained:0}, \"{result.Moodlet.Name}\".";
+        GD.Print($"[Comer] {_lastEat}");
+        Render();
+    }
+
     private void PrepareQuick()
     {
-        Report("Rápido", QuickMealPlanner.Prepare(_session, _selected, _anchors));
+        Report("Rápido", _home.Store(QuickMealPlanner.Prepare(Kitchen, _selected, _anchors)));
 
         // A despensa desceu: as opções precisam ser replanejadas, porque custo, qualidade
         // prevista e disponibilidade saem do estoque.
         OpenQuickMenu();
     }
 
-    private void Cook() => Report("Manual", _session.Cook(_anchors));
+    private void Cook() => Report("Manual", _home.Store(Kitchen.Cook(_anchors)));
 
-    /// <summary>
-    /// Fim de linha do protótipo. Enquanto o prato não virar item do mundo, o resultado
-    /// sai no console — e sai daqui, da UI, para o modelo continuar sem <c>GD.Print</c>.
-    /// </summary>
-    private static void Report(string source, CookedDish dish) =>
-        GD.Print($"[{source}] {dish.Name} — qualidade {dish.Quality:P0}, custo {dish.Cost}, " +
-                 $"{dish.Calories:0} kcal, moodlet {dish.MoodletMinutes:0} min");
+    /// <summary>O prato virou refeição na geladeira. O console só registra; o modelo não imprime nada.</summary>
+    private static void Report(string source, Meal meal) =>
+        GD.Print($"[{source}] {meal.Dish.Name} — qualidade {meal.Dish.Quality:P0}, " +
+                 $"{meal.TotalServings} porções para a geladeira");
 
     // ------------------------------------------------------------------
     // Tela
@@ -162,7 +202,11 @@ public partial class CookingDemo : Control
         row.AddChild(PanelPrimitives.Text("Dev", 10, _skin.Mute));
         row.AddChild(DevButton(_skin == PanelSkin.Dark ? "Pele · escura" : "Pele · clara", ToggleSkin));
         row.AddChild(DevButton(_showRegionLabels ? "Regiões · visíveis" : "Regiões · ocultas", ToggleRegionLabels));
-        row.AddChild(DevButton($"Dia {_day} · passar 1 dia", PassDay));
+        row.AddChild(PanelPrimitives.Text(
+            $"Dia {_home.Day} · {_home.HourOfDay:00}h  ·  {_home.Sim.Name}: fome {_home.Sim.Hunger:0}, " +
+            $"sede {_home.Sim.Thirst:0}, humor {_home.Sim.Mood:+0;-0;0}", 10, _skin.Mute));
+        row.AddChild(DevButton("+4 h", () => PassTime(4f)));
+        row.AddChild(DevButton("+1 dia", () => PassTime(24f)));
         return row;
     }
 
@@ -175,14 +219,14 @@ public partial class CookingDemo : Control
         return button;
     }
 
-    private void PassDay()
+    private void PassTime(float hours)
     {
-        _day++;
-        _session.AdvanceTime(1f);
+        _home.AdvanceHours(hours);
 
         // Custo, qualidade prevista e disponibilidade do menu saem do estoque, que acabou de
-        // envelhecer. O painel manual não precisa disso: ele lê a sessão a cada redesenho.
-        if (_quickMenuOpen) OpenQuickMenu();
+        // envelhecer. Os outros contextos leem a casa a cada redesenho; Render só atualiza a
+        // barra de dev com o relógio e as necessidades.
+        if (_view == View.QuickMenu) OpenQuickMenu();
         else Render();
     }
 
