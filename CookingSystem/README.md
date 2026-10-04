@@ -85,6 +85,11 @@ com fome, sede e humor come uma porção por vez: a geladeira mostra o efeito an
 só no momento de comer a intoxicação é sorteada. É o segundo contexto do mesmo painel — o
 primeiro que não é preparo.
 
+Necessidades têm consequência: fome e sede baixas pesam no humor, e zerar desmaia. Com
+livre-arbítrio ligado, o Sim bebe água, come da geladeira e cozinha sozinho quando a fome
+aperta — evitando comida perigosa enquanto ainda tem escolha. Tudo que ele faz sozinho vai
+para o diário da casa.
+
 O teto de perícia é `0.50 + 0.05 × nível`. Nível 0 nunca passa de 50% mesmo acertando tudo;
 o painel avisa quando é a perícia que está segurando a nota, em vez de deixar o jogador
 otimizar às cegas.

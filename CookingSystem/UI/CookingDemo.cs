@@ -59,7 +59,10 @@ public partial class CookingDemo : Control
 
         var kitchen = new CookingSession(ContentLibrary.StartingPantry(), CookingLevel);
         kitchen.SetBase(_bases[0]);
-        _home = new Household.Household(kitchen, new Sim("Ana", hunger: 45f, thirst: 50f));
+        // O livro de receitas da autonomia: as mesmas âncoras do menu rápido. No jogo real, só
+        // as que o Sim já descobriu.
+        var cookbook = new Cookbook(_bases, _anchors, _anchors.Select(a => a.DishName).ToList());
+        _home = new Household.Household(kitchen, new Sim("Ana", hunger: 45f, thirst: 50f), cookbook);
         _home.Changed += () => _panel?.Rebuild();
 
         OpenQuickMenu();
@@ -192,6 +195,7 @@ public partial class CookingDemo : Control
 
         column.AddChild(DevBar());
         column.AddChild(_panel);
+        column.AddChild(Diary());
     }
 
     /// <summary>Barra de autoria: trocar a pele e etiquetar as regiões do shell.</summary>
@@ -205,6 +209,7 @@ public partial class CookingDemo : Control
         row.AddChild(PanelPrimitives.Text(
             $"Dia {_home.Day} · {_home.HourOfDay:00}h  ·  {_home.Sim.Name}: fome {_home.Sim.Hunger:0}, " +
             $"sede {_home.Sim.Thirst:0}, humor {_home.Sim.Mood:+0;-0;0}", 10, _skin.Mute));
+        row.AddChild(DevButton(_home.Autonomous ? "Livre-arbítrio · ligado" : "Livre-arbítrio · desligado", ToggleAutonomy));
         row.AddChild(DevButton("+4 h", () => PassTime(4f)));
         row.AddChild(DevButton("+1 dia", () => PassTime(24f)));
         return row;
@@ -217,6 +222,33 @@ public partial class CookingDemo : Control
         button.AddThemeFontSizeOverride("font_size", 11);
         button.Pressed += () => onPress();
         return button;
+    }
+
+    /// <summary>
+    /// As últimas linhas do diário da casa, abaixo do painel. No jogo isto é a parede de
+    /// notificações; aqui é o que deixa ver a autonomia agindo enquanto o tempo passa.
+    /// </summary>
+    private Control Diary()
+    {
+        var box = new VBoxContainer();
+        box.AddThemeConstantOverride("separation", 3);
+        box.SizeFlagsHorizontal = SizeFlags.ShrinkCenter;
+        box.CustomMinimumSize = new Vector2(1180, 0);
+
+        box.AddChild(PanelPrimitives.Text("Diário da casa", 10, _skin.Dim));
+        if (_home.Log.Count == 0)
+            box.AddChild(PanelPrimitives.Text("Nada aconteceu ainda.", 11, _skin.Mute));
+        foreach (var e in _home.Log.Take(6))
+            box.AddChild(PanelPrimitives.Text($"{e.Clock,-12}  {e.Text}", 11,
+                e.Text.Contains("desmaiou") || e.Text.Contains("passou mal") || e.Text.Contains("não há o que comer")
+                    ? _skin.Accent : _skin.Mute));
+        return box;
+    }
+
+    private void ToggleAutonomy()
+    {
+        _home.Autonomous = !_home.Autonomous;
+        Render();
     }
 
     private void PassTime(float hours)

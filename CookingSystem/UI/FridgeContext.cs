@@ -17,9 +17,6 @@ public static class FridgeContext
 {
     private const float PanelWidth = 1180f;
 
-    /// <summary>Abaixo disto a necessidade aparece em alarme. É onde o Sim começa a reclamar.</summary>
-    private const float NeedAlarm = 30f;
-
     public static PanelContext Build(
         Household.Household home,
         Meal selected,
@@ -49,6 +46,15 @@ public static class FridgeContext
                 {
                     Verbs = new[]
                     {
+                        new Verb
+                        {
+                            Name = "Beber água",
+                            Note = sim.Thirst >= 100f
+                                ? $"{sim.Name} não está com sede."
+                                : $"Da pia, de graça: sede {sim.Thirst:0} → {Math.Min(100f, sim.Thirst + Sim.WaterThirst):0}.",
+                            Locked = sim.Thirst >= 100f,
+                            OnUse = home.DrinkWater,
+                        },
                         new Verb
                         {
                             Name = "Jogar fora este prato",
@@ -109,6 +115,7 @@ public static class FridgeContext
                 new ChecklistRow
                 {
                     Name = "Nada pronto",
+                    Tint = Godot.Colors.Transparent,
                     Note = "cozinhe algo — o que sobrar vem para cá",
                     Met = false,
                 },
@@ -158,16 +165,16 @@ public static class FridgeContext
             new ChecklistRow
             {
                 Name = "Fome", Tint = new Godot.Color("d9a24a"),
-                Note = sim.Hunger < NeedAlarm ? "faminto" : "",
+                Note = NeedNote(sim.Hunger, "com fome", "faminto"),
                 Tally = Tally(sim.Hunger, meal is null ? null : sim.HungerAfter(meal)),
-                Met = sim.Hunger >= NeedAlarm,
+                Met = !sim.IsHungry,
             },
             new ChecklistRow
             {
                 Name = "Sede", Tint = new Godot.Color("5b8fc7"),
-                Note = sim.Thirst < NeedAlarm ? "com sede" : "",
+                Note = NeedNote(sim.Thirst, "com sede", "desidratado"),
                 Tally = Tally(sim.Thirst, meal is null ? null : sim.ThirstAfter(meal)),
-                Met = sim.Thirst >= NeedAlarm,
+                Met = !sim.IsThirsty,
             },
             new ChecklistRow
             {
@@ -179,8 +186,12 @@ public static class FridgeContext
         };
     }
 
+    /// <summary>Os mesmos dois cortes que dão os moodlets de necessidade: a nota e o humor dizem a mesma coisa.</summary>
+    private static string NeedNote(float need, string low, string critical) =>
+        need < Sim.NeedCritical ? critical : need < Sim.NeedLow ? low : "";
+
     private static PreviewCard Preview(Meal meal) => meal is null
-        ? new PreviewCard { Title = "Refeição", Name = "—", Description = "Nada escolhido." }
+        ? new PreviewCard { Title = "Refeição", Name = "—", Description = "Nada escolhido.", Tint = Godot.Colors.Transparent }
         : new PreviewCard
         {
             Title = "Refeição",

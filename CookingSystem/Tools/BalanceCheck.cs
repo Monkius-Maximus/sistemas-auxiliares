@@ -70,6 +70,10 @@ public partial class BalanceCheck : SceneTree
         PrintServings(bases, anchors, defs);
         GD.Print();
         PrintSkillCurve(pantry, bases, anchors, defs);
+        GD.Print();
+        PrintDaysOfLife(bases.Values.ToList(), anchors, autonomous: true);
+        GD.Print();
+        PrintDaysOfLife(bases.Values.ToList(), anchors, autonomous: false);
         Quit();
     }
 
@@ -164,6 +168,27 @@ public partial class BalanceCheck : SceneTree
             GD.Print($"{name,-40}{meal.TotalServings,5}{sim.HungerAfter(meal) - 30f,7:+0;-0}" +
                      $"{sim.ThirstAfter(meal) - 30f,7:+0;-0}  {Sim.MoodletFor(meal).Name}");
         }
+    }
+
+    /// <summary>
+    /// Três dias de uma casa com a cozinha do demo, semente fixa. Com livre-arbítrio, o Sim deve
+    /// se manter alimentado sozinho até a despensa acabar; sem, deve desmaiar. Se o diário com
+    /// autonomia mostrar desmaio com comida na despensa, a autonomia regrediu.
+    /// </summary>
+    private static void PrintDaysOfLife(List<BaseItemDef> bases, List<RecipeAnchor> anchors, bool autonomous)
+    {
+        var kitchen = new CookingSession(ContentLibrary.StartingPantry(), 6);
+        kitchen.SetBase(bases[0]);
+        var cookbook = new Cookbook(bases, anchors, anchors.Select(a => a.DishName).ToList());
+        var home = new Household.Household(kitchen, new Sim("Ana", 45f, 50f), cookbook, seed: 7) { Autonomous = autonomous };
+
+        home.AdvanceHours(72f);
+
+        GD.Print($"três dias, livre-arbítrio {(autonomous ? "ligado" : "desligado")}:");
+        foreach (var e in home.Log.Reverse())
+            GD.Print($"  {e.Clock,-12} {e.Text}");
+        GD.Print($"  → fome {home.Sim.Hunger:0}, sede {home.Sim.Thirst:0}, humor {home.Sim.Mood:+0;-0;0}" +
+                 $" ({string.Join(", ", home.Sim.Moodlets.Select(m => m.Name))})");
     }
 
     /// <summary>O mesmo prato ótimo em vários níveis: confere se a perícia é gargalo de verdade.</summary>

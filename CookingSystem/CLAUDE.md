@@ -15,8 +15,9 @@ Cooking/   Modelo. Nenhuma chamada de API do Godot.
            DishEvaluator + DishNamer (puros) · ModifierStack · CookedDish (imutável) ·
            IngredientStack · QuickMealPlanner + QuickMealOption (menu rápido, puros)
 
-Household/ A casa: Household (relógio do mundo) · Meal (prato pronto com porções) ·
-           Sim (fome, sede, humor por moodlets). Nenhuma chamada de API do Godot.
+Household/ A casa: Household (relógio do mundo, diário) · Meal (prato pronto com porções) ·
+           Sim (fome, sede, humor por moodlets) · Autonomy (o que o Sim decide sozinho, puro).
+           Nenhuma chamada de API do Godot.
 
 Content/   O conteúdo, em .tres: Ingredients/ · Bases/ · Anchors/.
            ContentLibrary lê as pastas — ingrediente novo é arquivo novo, não linha de C#.
@@ -113,7 +114,8 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 
 | O quê | Onde | Estado |
 |---|---|---|
-| Fome e sede zeradas não têm consequência | `Sim` | o Sim chega a 0 e nada acontece; falta desmaio/morte/moodlet de fome |
+| Morte por fome ou sede | `Sim.PassHours` | hoje zerar desmaia (recuperável); morte é decisão de tom do jogo |
+| Autonomia além de comer e beber | `Household.ActOnNeeds` | só fome e sede; dormir, higiene e diversão entram aqui |
 | `UnhappinessRelief` / `BoredomRelief` | `CookedDish` | fórmulas antigas sem consumidor; o humor de comer usa os moodlets do `Sim` |
 | Mais de um Sim na casa | `Household` | um Sim só; refeição em grupo e porções divididas entram aqui |
 | Armazenamento (geladeira × bancada × geladeira quebrada) | `Pantry.Age` | tudo envelhece como em geladeira; entra como multiplicador do tempo |
@@ -183,6 +185,28 @@ O preparo termina numa **refeição** (`Meal`) que vai para a geladeira da `Hous
 Cada recipiente gera um perfil de refeição que o Sim sente: frito enche e não mata sede, sopa faz
 as duas coisas, salada mata a sede. A água do caldo é uma **soma** no stack (`sede +16`), não um
 multiplicador — multiplicar a sede quase nula de batata e cogumelo não hidratava nada.
+
+## Necessidades e autonomia
+
+- **Necessidade baixa pesa no humor** com moodlets calculados, não guardados: abaixo de 30 "Com
+  fome"/"Com sede" (−10), abaixo de 15 "Faminto"/"Desidratado" (−25). Comer tira na hora — ninguém
+  precisa lembrar de remover. A tela usa esses mesmos dois cortes nas notas.
+- **Zerar desmaia** ("Desmaiou de fome/sede", −40 por 8 h), uma vez por esvaziamento: só desmaia de
+  novo depois de a necessidade subir acima de 15. Desmaio e não morte, por enquanto.
+- **Água da pia** é de graça e sem limite (+45 de sede). Sem ela, um Sim com só omelete na
+  geladeira morria de sede por desenho.
+- **Autonomia** (`Household.Autonomous`, o livre-arbítrio): a cada hora que passa, com sede o Sim
+  bebe água; com fome come a melhor refeição da geladeira (`Autonomy.ChooseMeal`) e, se nenhuma
+  serve, cozinha sozinho pelo menu rápido (`Autonomy.ChooseRecipe`) e come. Só aceita risco de
+  intoxicação acima de 10% quando já está faminto, nunca cozinha sozinho comida com risco, e não
+  come se a porção não render pelo menos +10 de fome.
+- **Escolher é puro, agir é da casa.** `Autonomy` só decide; `Household` executa e registra no
+  **diário** (`Household.Log`), que no jogo é a parede de notificações.
+
+Essa última regra de +10 saiu do teste de três dias do `BalanceCheck`: a primeira versão tratava
+sede como motivo para comer, e Ana comia omelete de hora em hora, cozinhava outra, e desmaiava de
+sede com seis porções no estômago. O teste roda a casa do demo por 72 h com semente fixa, com e
+sem livre-arbítrio: com, ela se mantém sozinha; sem, desmaia no primeiro dia.
 
 ## Modificadores
 
