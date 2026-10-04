@@ -71,5 +71,6 @@ A regra que impede o catálogo de apodrecer: um primitivo precisa se justificar 
   `(região, índice)` porque é onde o cursor do jogador está *neste* painel, e morre com ele.
 - **Não abre nem fecha a si mesmo.** Quem abre a interação é o host, e é ele que sabe se o
   mundo pausa.
-- **Não tem arte.** `PreviewCard.Art` e os ícones dos slots aceitam `Texture2D`; sem eles,
-  desenha o `TintColor` do item.
+- **Não tem arte.** `PreviewCard.Art` e os ícones dos slots aceitam `Texture2D`. Com textura,
+  ela aparece sozinha, sem a cor por trás; sem textura, o painel desenha a cor (`Tint`) com as
+  iniciais do nome (`PanelPrimitives.Monogram`). Achar a textura é trabalho do jogo, não do painel.

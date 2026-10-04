@@ -106,7 +106,8 @@ public static class CookingContext
             Preview = new PreviewCard
             {
                 Title = "Prato resultante",
-                Art = session.Base.Icon,
+                // Vazio, o recipiente; com algo dentro, o prato que vai sair dele.
+                Art = dish is null ? session.Base.Icon : ArtLibrary.Dish(dish, session.Base),
                 Tint = session.Base.TintColor,
                 Name = dish?.Name ?? "—",
                 Description = Description(dish),

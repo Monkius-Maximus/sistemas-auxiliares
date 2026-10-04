@@ -8,7 +8,8 @@ using LifeSim.Household;
 namespace LifeSim.Cooking;
 
 /// <summary>
-/// Ponto de entrada do protótipo. Anexe este script a um Control raiz de uma cena e rode.
+/// Ferramenta de dev: o fogão em tela cheia, com pele, regiões e relógio na mão. O jogo de
+/// verdade começa em <see cref="MainMenu"/>; esta cena abre pelo botão "Bancada de testes".
 ///
 /// Reproduz o fluxo pretendido: clicar no fogão abre o MENU RÁPIDO; o painel manual está
 /// atrás do verbo "Preparar manualmente…" e volta pelo ✕. Os dois são o mesmo
@@ -22,176 +23,27 @@ public partial class CookingDemo : Control
 {
     [Export] public int CookingLevel { get; set; } = 6;
 
-    private List<BaseItemDef> _bases;
-    private List<RecipeAnchor> _anchors;
-
     /// <summary>
-    /// A casa do Sim, viva enquanto o protótipo roda: cozinha, geladeira, o Sim e o relógio.
-    /// Uma só — preparar e comer precisam acontecer sobre a mesma despensa e a mesma geladeira.
+    /// A casa e as telas dela. As mesmas do jogo (<see cref="GameScreen"/>): aqui o fogão é a
+    /// tela inteira e o tempo só anda pelos botões da barra de dev.
     /// </summary>
-    private Household.Household _home;
-    private CookingSession Kitchen => _home.Kitchen;
+    private HouseInteractions _house;
+    private Household.Household Home => _house.Home;
 
-    private enum View { QuickMenu, Manual, Fridge, Shop }
-
-    /// <summary>
-    /// Qual contexto está aberto. Estado de tela sem dono no modelo, por isso mora aqui. O menu
-    /// rápido precisa ser replanejado quando o estoque muda por fora dele.
-    /// </summary>
-    private View _view;
-
-    /// <summary>A refeição marcada na geladeira, e a frase do que aconteceu na última porção.</summary>
-    private Meal _selectedMeal;
-    private string _lastEat;
-
-    /// <summary>A ida às compras aberta. Estado da interação, mas do modelo: o carrinho é de verdade.</summary>
-    private ShoppingTrip _trip;
-    private List<VendorDef> _vendors;
-
-    private List<QuickMealOption> _options;
-    private QuickMealOption _selected;
-
-    private Func<PanelContext> _definition;
     private ContextPanel _panel;
     private PanelSkin _skin = PanelSkin.Dark;
     private bool _showRegionLabels;
 
     public override void _Ready()
     {
-        _bases = ContentLibrary.Bases();
-        _anchors = ContentLibrary.Anchors();
-        _vendors = ContentLibrary.Vendors();
-
-        var kitchen = new CookingSession(ContentLibrary.StartingPantry(), CookingLevel);
-        kitchen.SetBase(_bases[0]);
-        // O livro de receitas da autonomia: as mesmas âncoras do menu rápido. No jogo real, só
-        // as que o Sim já descobriu.
-        var cookbook = new Cookbook(_bases, _anchors, _anchors.Select(a => a.DishName).ToList());
-        _home = new Household.Household(kitchen, new Sim("Ana", hunger: 45f, thirst: 50f), cookbook);
-        _home.Changed += () => _panel?.Rebuild();
-
-        OpenQuickMenu();
+        _house = new HouseInteractions(HouseInteractions.NewHousehold(CookingLevel), CookingLevel, canCloseStove: false);
+        _house.Opened += Render;
+        _house.Changed += () => _panel?.Rebuild();
+        // Geladeira e loja abertas pelo menu voltam a ele; sem objeto da casa para abrir
+        // outra coisa, fechar aqui só pode cair de volta no fogão.
+        _house.Closed += _house.OpenStove;
+        _house.OpenStove();
     }
-
-    // ------------------------------------------------------------------
-    // Contextos
-    // ------------------------------------------------------------------
-
-    private void OpenQuickMenu()
-    {
-        // Sair do painel manual devolve à despensa o que ficou no recipiente, antes de
-        // planejar: o menu precisa contar com esses ingredientes de volta.
-        Kitchen.Clear();
-
-        // No jogo real isto vem do Sim: as âncoras que ele já descobriu.
-        var known = _anchors.Select(a => a.DishName).ToList();
-
-        _view = View.QuickMenu;
-        _options = QuickMealPlanner.Plan(Kitchen.Pantry, _bases, _anchors, known, CookingLevel, Kitchen.PickOrder);
-        _selected = _options[0];
-        _definition = () => QuickMealContext.Build(
-            Kitchen.Pantry, _options, _selected, Select, PrepareQuick, OpenManualPanel,
-            OpenFridge, _home.Meals.Count, OpenShop);
-
-        Render();
-    }
-
-    private void OpenManualPanel()
-    {
-        _view = View.Manual;
-        Kitchen.Clear();
-        _definition = () => CookingContext.Build(Kitchen, _bases, _anchors, Cook, OpenQuickMenu);
-        Render();
-    }
-
-    private void Select(QuickMealOption option)
-    {
-        _selected = option;
-        _panel.Rebuild();
-    }
-
-    /// <summary>
-    /// A geladeira. A refeição marcada é revalidada a cada redesenho: comer a última porção
-    /// tira a refeição do mundo, e o painel não pode desenhar um prato que não existe mais.
-    /// </summary>
-    private void OpenFridge()
-    {
-        _view = View.Fridge;
-        Kitchen.Clear();
-        _selectedMeal = null;
-        _lastEat = null;
-        _definition = () => FridgeContext.Build(_home, CurrentMeal(), SelectMeal, EatSelected, OpenQuickMenu, _lastEat);
-        Render();
-    }
-
-    /// <summary>
-    /// A loja. Abre no primeiro vendedor aberto agora — às 23h, ninguém quer cair na porta
-    /// fechada do mercado. Fechar descarta o carrinho: nada é cobrado antes de comprar.
-    /// </summary>
-    private void OpenShop()
-    {
-        _view = View.Shop;
-        Kitchen.Clear();
-        var vendor = _vendors.FirstOrDefault(v => v.IsOpenAt(_home.HourOfDay) && !v.AlwaysOpen)
-                     ?? _vendors.FirstOrDefault(v => v.IsOpenAt(_home.HourOfDay))
-                     ?? _vendors[0];
-        _trip = new ShoppingTrip(vendor);
-        _trip.Changed += () => _panel?.Rebuild();
-        _definition = () => ShopContext.Build(_home, _trip, _vendors, _anchors, BuyCart, CloseShop);
-        Render();
-    }
-
-    private void BuyCart() => _home.Buy(_trip);
-
-    /// <summary>
-    /// Troca de contexto primeiro, solta o carrinho depois. Abrir o menu esvazia a cozinha, o que
-    /// redesenha o painel ainda com a definição da loja — sem carrinho, ela quebraria.
-    /// </summary>
-    private void CloseShop()
-    {
-        OpenQuickMenu();
-        _trip = null;
-    }
-
-    private Meal CurrentMeal()
-    {
-        if (_selectedMeal is null || !_home.Meals.Contains(_selectedMeal))
-            _selectedMeal = _home.Meals.FirstOrDefault();
-        return _selectedMeal;
-    }
-
-    private void SelectMeal(Meal meal)
-    {
-        _selectedMeal = meal;
-        _lastEat = null;
-        _panel.Rebuild();
-    }
-
-    private void EatSelected()
-    {
-        var result = _home.Eat(CurrentMeal());
-        _lastEat = result.Poisoned
-            ? $"{_home.Sim.Name} passou mal: \"{result.Moodlet.Name}\"."
-            : $"{_home.Sim.Name} comeu {result.MealName}: fome +{result.HungerGained:0}, \"{result.Moodlet.Name}\".";
-        GD.Print($"[Comer] {_lastEat}");
-        Render();
-    }
-
-    private void PrepareQuick()
-    {
-        Report("Rápido", _home.Store(QuickMealPlanner.Prepare(Kitchen, _selected, _anchors)));
-
-        // A despensa desceu: as opções precisam ser replanejadas, porque custo, qualidade
-        // prevista e disponibilidade saem do estoque.
-        OpenQuickMenu();
-    }
-
-    private void Cook() => Report("Manual", _home.Store(Kitchen.Cook(_anchors)));
-
-    /// <summary>O prato virou refeição na geladeira. O console só registra; o modelo não imprime nada.</summary>
-    private static void Report(string source, Meal meal) =>
-        GD.Print($"[{source}] {meal.Dish.Name} — qualidade {meal.Dish.Quality:P0}, " +
-                 $"{meal.TotalServings} porções para a geladeira");
 
     // ------------------------------------------------------------------
     // Tela
@@ -207,7 +59,7 @@ public partial class CookingDemo : Control
 
         _panel = new ContextPanel
         {
-            Definition = _definition,
+            Definition = _house.Definition,
             Skin = _skin,
             ShowRegionLabels = _showRegionLabels,
         };
@@ -237,13 +89,14 @@ public partial class CookingDemo : Control
     {
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 6);
+        row.AddChild(DevButton("← Menu", () => GetTree().ChangeSceneToFile(GameScenes.MainMenu)));
         row.AddChild(PanelPrimitives.Text("Dev", 10, _skin.Mute));
         row.AddChild(DevButton(_skin == PanelSkin.Dark ? "Pele · escura" : "Pele · clara", ToggleSkin));
         row.AddChild(DevButton(_showRegionLabels ? "Regiões · visíveis" : "Regiões · ocultas", ToggleRegionLabels));
         row.AddChild(PanelPrimitives.Text(
-            $"Dia {_home.Day} · {_home.HourOfDay:00}h  ·  {_home.Sim.Name}: fome {_home.Sim.Hunger:0}, " +
-            $"sede {_home.Sim.Thirst:0}, humor {_home.Sim.Mood:+0;-0;0}", 10, _skin.Mute));
-        row.AddChild(DevButton(_home.Autonomous ? "Livre-arbítrio · ligado" : "Livre-arbítrio · desligado", ToggleAutonomy));
+            $"Dia {Home.Day} · {Home.HourOfDay:00}h  ·  {Home.Sim.Name}: fome {Home.Sim.Hunger:0}, " +
+            $"sede {Home.Sim.Thirst:0}, humor {Home.Sim.Mood:+0;-0;0}", 10, _skin.Mute));
+        row.AddChild(DevButton(Home.Autonomous ? "Livre-arbítrio · ligado" : "Livre-arbítrio · desligado", ToggleAutonomy));
         row.AddChild(DevButton("+4 h", () => PassTime(4f)));
         row.AddChild(DevButton("+1 dia", () => PassTime(24f)));
         return row;
@@ -251,7 +104,7 @@ public partial class CookingDemo : Control
 
     private Button DevButton(string text, Action onPress)
     {
-        var button = PanelPrimitives.FlatButton(_skin, _skin.Panel, _skin.Line);
+        var button = PanelPrimitives.FlatButton(_skin, _skin.Panel, _skin.Line, 8, 3);
         button.Text = text;
         button.AddThemeFontSizeOverride("font_size", 11);
         button.Pressed += () => onPress();
@@ -270,30 +123,27 @@ public partial class CookingDemo : Control
         box.CustomMinimumSize = new Vector2(1180, 0);
 
         box.AddChild(PanelPrimitives.Text("Diário da casa", 10, _skin.Dim));
-        if (_home.Log.Count == 0)
+        if (Home.Log.Count == 0)
             box.AddChild(PanelPrimitives.Text("Nada aconteceu ainda.", 11, _skin.Mute));
-        foreach (var e in _home.Log.Take(6))
+        foreach (var e in Home.Log.Take(6))
             box.AddChild(PanelPrimitives.Text($"{e.Clock,-12}  {e.Text}", 11,
-                e.Text.Contains("desmaiou") || e.Text.Contains("passou mal") || e.Text.Contains("não há o que comer")
-                    ? _skin.Accent : _skin.Mute));
+                DiaryText.IsAlarm(e) ? _skin.Accent : _skin.Mute));
         return box;
     }
 
     private void ToggleAutonomy()
     {
-        _home.Autonomous = !_home.Autonomous;
+        Home.Autonomous = !Home.Autonomous;
         Render();
     }
 
     private void PassTime(float hours)
     {
-        _home.AdvanceHours(hours);
+        Home.AdvanceHours(hours);
+        _house.TimePassed();
 
-        // Custo, qualidade prevista e disponibilidade do menu saem do estoque, que acabou de
-        // envelhecer. Os outros contextos leem a casa a cada redesenho; Render só atualiza a
-        // barra de dev com o relógio e as necessidades.
-        if (_view == View.QuickMenu) OpenQuickMenu();
-        else Render();
+        // A barra de dev mostra o relógio e as necessidades, que estão fora do painel.
+        Render();
     }
 
     private void ToggleSkin()

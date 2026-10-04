@@ -156,7 +156,7 @@ public static class DishEvaluator
             PoisoningChance = poisoning,
             Intensity = intensity,
             DominantAxis = (FlavorAxis)dominantIndex,
-            MatchedAnchor = anchor is not null,
+            Anchor = anchor,
             AnchorBonusDenied = anchor is not null && !liftable,
         };
     }

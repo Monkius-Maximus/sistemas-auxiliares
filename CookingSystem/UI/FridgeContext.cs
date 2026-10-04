@@ -134,7 +134,7 @@ public static class FridgeContext
             Slots = home.Meals.Select(m => new PanelSlot
             {
                 Name = m.Dish.Name,
-                Icon = m.Vessel?.Icon,
+                Icon = ArtLibrary.Dish(m.Dish, m.Vessel),
                 Tint = m.Vessel?.TintColor ?? Godot.Colors.Gray,
                 Sub = m.State switch
                 {
@@ -164,21 +164,21 @@ public static class FridgeContext
         {
             new ChecklistRow
             {
-                Name = "Fome", Tint = new Godot.Color("d9a24a"),
+                Name = "Fome", Tint = NeedArt.HungerTint, Icon = NeedArt.Icon(NeedArt.HungerId),
                 Note = NeedNote(sim.Hunger, "com fome", "faminto"),
                 Tally = Tally(sim.Hunger, meal is null ? null : sim.HungerAfter(meal)),
                 Met = !sim.IsHungry,
             },
             new ChecklistRow
             {
-                Name = "Sede", Tint = new Godot.Color("5b8fc7"),
+                Name = "Sede", Tint = NeedArt.ThirstTint, Icon = NeedArt.Icon(NeedArt.ThirstId),
                 Note = NeedNote(sim.Thirst, "com sede", "desidratado"),
                 Tally = Tally(sim.Thirst, meal is null ? null : sim.ThirstAfter(meal)),
                 Met = !sim.IsThirsty,
             },
             new ChecklistRow
             {
-                Name = "Humor", Tint = new Godot.Color("b07cc6"),
+                Name = "Humor", Tint = NeedArt.MoodTint, Icon = NeedArt.Icon(NeedArt.MoodId),
                 Note = sim.Moodlets.Count == 0 ? "sem moodlet" : string.Join(", ", sim.Moodlets.Select(m => m.Name)),
                 Tally = meal is null ? $"{sim.Mood:+0;-0;0}" : $"{sim.Mood:+0;-0;0} → {moodAfter:+0;-0;0}",
                 Met = sim.Mood >= 0f,
@@ -195,7 +195,7 @@ public static class FridgeContext
         : new PreviewCard
         {
             Title = "Refeição",
-            Art = meal.Vessel?.Icon,
+            Art = ArtLibrary.Dish(meal.Dish, meal.Vessel),
             Tint = meal.Vessel?.TintColor ?? Godot.Colors.Gray,
             Name = meal.Name,
             Description = meal.State switch

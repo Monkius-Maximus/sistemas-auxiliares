@@ -12,6 +12,13 @@ public partial class BaseItemDef : Resource
     [Export] public string Id { get; set; } = "";
     [Export] public string DisplayName { get; set; } = "";
     [Export] public Texture2D Icon { get; set; }
+
+    /// <summary>
+    /// Arte do prato improvisado neste recipiente ("Sopa de…", "Salada de…"). Prato que casa
+    /// uma âncora usa a arte da âncora. Vazio, vem de <c>res://Art/Dishes/generico-&lt;id&gt;.png</c>.
+    /// </summary>
+    [Export] public Texture2D DishIcon { get; set; }
+
     [Export] public CookingMethod Method { get; set; } = CookingMethod.Raw;
 
     /// <summary>Substantivo do prato resultante. Usado por <see cref="DishNamer"/>.</summary>

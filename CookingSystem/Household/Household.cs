@@ -14,7 +14,7 @@ public sealed record Cookbook(
 /// <summary>Uma linha do diário da casa: o que aconteceu, e quando.</summary>
 public sealed record HouseholdEvent(float Hours, string Text)
 {
-    public string Clock => $"dia {(int)(Hours / 24f)}, {(int)(Hours % 24f):00}h";
+    public string Clock => $"dia {(int)(Hours / 24f) + 1}, {(int)(Hours % 24f):00}h";
 }
 
 /// <summary>
@@ -73,7 +73,8 @@ public sealed class Household
     /// <summary>Horas desde o começo do jogo.</summary>
     public float Hours { get; private set; } = 8f;
 
-    public int Day => (int)(Hours / 24f);
+    /// <summary>Dia do calendário, contado a partir de 1 como o jogador conta.</summary>
+    public int Day => (int)(Hours / 24f) + 1;
     public int HourOfDay => (int)(Hours % 24f);
 
     /// <summary>Refeições prontas, da mais nova à mais velha.</summary>

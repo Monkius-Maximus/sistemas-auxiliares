@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Godot;
 
 namespace ContextUi;
@@ -57,7 +58,7 @@ public static class PanelPrimitives
 
             var content = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
             content.AddThemeConstantOverride("separation", 5);
-            content.AddChild(Swatch(option.Icon, option.Tint, 0, 22));
+            content.AddChild(Swatch(option.Icon, option.Tint, option.Name, 0, 22));
             content.AddChild(Text(option.Name, 11, option.Selected ? skin.Ink : skin.Dim));
             Fill(button, content, inset: 5);
 
@@ -97,7 +98,7 @@ public static class PanelPrimitives
 
             var head = new HBoxContainer();
             head.AddThemeConstantOverride("separation", 7);
-            head.AddChild(Swatch(null, verb.Locked ? skin.LineSoft : verb.Active ? skin.Accent : skin.Mute, 8, 8));
+            head.AddChild(Dot(verb.Locked ? skin.LineSoft : verb.Active ? skin.Accent : skin.Mute, 8));
             head.AddChild(Expanding(Text(verb.Name, 12, verb.Locked ? skin.Mute : skin.Ink)));
             head.AddChild(Text(verb.Skill, 9, skin.Mute));
             content.AddChild(head);
@@ -204,7 +205,7 @@ public static class PanelPrimitives
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 7);
 
-        row.AddChild(Swatch(slot.Icon, slot.Tint, SwatchSize, SwatchSize));
+        row.AddChild(Swatch(slot.Icon, slot.Tint, slot.Name, SwatchSize, SwatchSize));
 
         var names = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         names.AddThemeConstantOverride("separation", 1);
@@ -230,8 +231,8 @@ public static class PanelPrimitives
 
             var row = new HBoxContainer();
             row.AddThemeConstantOverride("separation", 10);
-            row.AddChild(Swatch(null, entry.Met ? skin.Dim : skin.Accent, 9, 9));
-            row.AddChild(Swatch(entry.Icon, entry.Tint, 22, 22));
+            row.AddChild(Dot(entry.Met ? skin.Dim : skin.Accent, 9));
+            row.AddChild(Swatch(entry.Icon, entry.Tint, entry.Name, 22, 22));
             row.AddChild(Expanding(Clipped(entry.Name, 12, skin.Ink)));
             row.AddChild(Text(entry.Note, 10, skin.Mute));
             row.AddChild(Text(entry.Tally, 12, entry.Met ? skin.Ink : skin.Accent));
@@ -251,7 +252,7 @@ public static class PanelPrimitives
     {
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 11);
-        row.AddChild(Swatch(preview.Art, preview.Tint, ArtSize, ArtSize, skin.Line));
+        row.AddChild(Swatch(preview.Art, preview.Tint, preview.Name, ArtSize, ArtSize, skin.Line));
 
         var column = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
         column.AddThemeConstantOverride("separation", 4);
@@ -422,13 +423,13 @@ public static class PanelPrimitives
     }
 
     /// <summary>O botão do painel: retângulo chapado, borda de 1px, acento só quando age.</summary>
-    public static Button FlatButton(PanelSkin skin, Color background, Color border)
+    public static Button FlatButton(PanelSkin skin, Color background, Color border, int marginX = 0, int marginY = 0)
     {
         var button = new Button { Alignment = HorizontalAlignment.Left };
-        button.AddThemeStyleboxOverride("normal", Box(background, border));
-        button.AddThemeStyleboxOverride("hover", Box(background, skin.Accent));
-        button.AddThemeStyleboxOverride("pressed", Box(skin.AccentDeep, skin.Accent));
-        button.AddThemeStyleboxOverride("disabled", Box(skin.Cell, skin.LineSoft));
+        button.AddThemeStyleboxOverride("normal", Box(background, border, marginX, marginY));
+        button.AddThemeStyleboxOverride("hover", Box(background, skin.Accent, marginX, marginY));
+        button.AddThemeStyleboxOverride("pressed", Box(skin.AccentDeep, skin.Accent, marginX, marginY));
+        button.AddThemeStyleboxOverride("disabled", Box(skin.Cell, skin.LineSoft, marginX, marginY));
         button.AddThemeStyleboxOverride("focus", FocusRing(skin));
         button.AddThemeColorOverride("font_color", skin.Ink);
         button.AddThemeColorOverride("font_hover_color", skin.Ink);
@@ -468,7 +469,7 @@ public static class PanelPrimitives
     /// O Button não compõe filhos com layout próprio, então a linha rica vai por cima dele
     /// com o mouse ignorando cliques — quem recebe o input continua sendo o botão.
     /// </summary>
-    private static void Fill(Button button, Control content, int inset)
+    public static void Fill(Button button, Control content, int inset)
     {
         content.MouseFilter = Control.MouseFilterEnum.Ignore;
         content.AnchorRight = 1;
@@ -479,28 +480,81 @@ public static class PanelPrimitives
     }
 
     /// <summary>
-    /// Retângulo de cor com o ícone por cima. É um caminho só para os dois casos: quando
-    /// não há arte ainda, sobra a cor do item; quando há, ela entra sem mudar o layout.
+    /// A arte do item, ou o marcador no lugar dela. Com arte, o fundo some e o desenho fica
+    /// sozinho sobre a célula — pintar a cor do item por trás de um PNG com transparência foi o
+    /// que fez o bacon desenhado continuar parecendo um quadrado vermelho. Sem arte, o marcador
+    /// é a cor do item com as iniciais do nome: cor sozinha não separa bacon de tomate.
     /// </summary>
-    private static Control Swatch(Texture2D icon, Color tint, int width, int height, Color? border = null)
+    public static Control Swatch(Texture2D icon, Color tint, string name, int width, int height, Color? border = null)
     {
         var box = new PanelContainer
         {
             CustomMinimumSize = new Vector2(width, height),
             SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
         };
+        var fill = icon is null ? tint : Colors.Transparent;
         box.AddThemeStyleboxOverride("panel", border is null
-            ? new StyleBoxFlat { BgColor = tint }
-            : Box(tint, border.Value));
+            ? new StyleBoxFlat { BgColor = fill }
+            : Box(fill, border.Value));
 
-        box.AddChild(new TextureRect
+        if (icon is not null)
         {
-            Texture = icon,
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        });
+            box.AddChild(new TextureRect
+            {
+                Texture = icon,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            });
+            return box;
+        }
+
+        // Linha vazia ("nada no carrinho") pede a cor transparente: nada para marcar.
+        if (tint.A == 0f)
+            return box;
+
+        var initials = Text(Monogram(name), Math.Max(9, height * 2 / 5), InkOn(tint));
+        initials.HorizontalAlignment = HorizontalAlignment.Center;
+        box.AddChild(initials);
         return box;
     }
+
+    /// <summary>Marca de estado: um quadrado de cor, sem arte nem texto.</summary>
+    private static Control Dot(Color color, int size)
+    {
+        var dot = new PanelContainer
+        {
+            CustomMinimumSize = new Vector2(size, size),
+            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        };
+        dot.AddThemeStyleboxOverride("panel", new StyleBoxFlat { BgColor = color });
+        return dot;
+    }
+
+    /// <summary>
+    /// Duas letras que distinguem o item: as iniciais das duas primeiras palavras que contam
+    /// ("Omelete de Queijo" → OQ). Nome de uma palavra só leva a primeira letra e a consoante
+    /// seguinte — as duas primeiras letras faziam Bacon e Batata virarem o mesmo "BA".
+    /// </summary>
+    public static string Monogram(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "";
+        var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Where(w => char.IsLetter(w[0]) && w.Length > 2)
+                        .ToArray();
+        if (words.Length == 0) return "";
+        if (words.Length > 1) return $"{words[0][0]}{words[1][0]}".ToUpperInvariant();
+
+        var word = words[0];
+        char second = word.Skip(1).FirstOrDefault(c => char.IsLetter(c) && !IsVowel(c));
+        if (second == default) second = word.Length > 1 ? word[1] : ' ';
+        return $"{word[0]}{second}".Trim().ToUpperInvariant();
+    }
+
+    private static bool IsVowel(char c) => "aeiouáéíóúâêôãõà".Contains(char.ToLowerInvariant(c));
+
+    /// <summary>Tinta legível sobre a cor do marcador: escura no claro, clara no escuro.</summary>
+    private static Color InkOn(Color background) =>
+        background.Luminance > 0.55f ? new Color(0, 0, 0, 0.72f) : new Color(1, 1, 1, 0.9f);
 
     private static ProgressBar Bar(float value, Color color, PanelSkin skin, int height)
     {

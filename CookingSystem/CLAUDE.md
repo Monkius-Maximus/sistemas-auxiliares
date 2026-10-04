@@ -23,6 +23,10 @@ Household/ A casa: Household (relógio do mundo, diário, dinheiro) · Meal (pra
 
 Content/   O conteúdo, em .tres: Ingredients/ · Bases/ · Anchors/ · Vendors/.
            ContentLibrary lê as pastas — ingrediente novo é arquivo novo, não linha de C#.
+           ArtLibrary acha a arte pelo nome: res://Art/<Categoria>/<id>.png.
+
+Art/       A arte, por convenção de nome. Lista completa e status em docs/arte-e-fluxo.xlsx
+           (gerada por Tools/gerar_planilha_arte.py); explicação em docs/ARTE-E-FLUXO.md.
 
 addons/context_panel/
            O shell reutilizável, sem nada de cozinha dentro. Namespace ContextUi,
@@ -34,11 +38,17 @@ addons/context_panel/
 
 UI/        As definições de contexto deste sistema: CookingContext (painel manual) ·
            QuickMealContext (menu rápido) · FridgeContext (geladeira: comer) ·
-           ShopContext (mercearia: comprar) · DishReadout ·
-           PantryText · CookingDemo. Zero estado próprio.
+           ShopContext (mercearia: comprar) · DishReadout · PantryText · NeedArt · DiaryText.
+           Zero estado próprio.
+           HouseInteractions — qual contexto está aberto e o que cada clique dele faz; o
+           estado de tela sem dono no modelo, num lugar só, para jogo e bancada.
+           CookingDemo — a bancada de testes (ferramenta de dev).
+UI/Game/   O jogo: MainMenu · GameScreen (a casa: HUD, objetos, diário, pausa) ·
+           GameClock (tempo real → horas de jogo, sem Godot) · GameScenes (caminhos).
 
 Tools/     BalanceCheck — roda o avaliador real sobre casos de referência.
-Scenes/    CookingDemo.tscn — cena principal.
+           gerar_planilha_arte.py — a planilha de arte, lida dos .tres e de Art/.
+Scenes/    MainMenu.tscn (principal) · Game.tscn (a casa) · CookingDemo.tscn (bancada).
 ```
 
 ## Fluxo pretendido
@@ -55,6 +65,11 @@ prevista saem do mesmo `DishEvaluator` que o painel usa.
 
 Os dois são o **mesmo painel** com definições diferentes — ver `docs/context-panel.md`.
 Cozinhar, comprar e construir devem ser definições de contexto, não janelas novas.
+
+No jogo, o fogão é um objeto da casa (`GameScreen`): menu principal → casa → clique no objeto →
+`HouseInteractions` abre o contexto → o painel aparece por cima e o tempo para até fechar. O
+loop e o mapa de cliques estão em `docs/ARTE-E-FLUXO.md`. A bancada (`CookingDemo`) usa as
+mesmas `HouseInteractions`, então tudo que se testa nela é o que o jogo abre.
 
 ## Invariantes — não quebrar sem discutir
 
@@ -123,7 +138,10 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 | Mais de um Sim na casa | `Household` | um Sim só; refeição em grupo e porções divididas entram aqui |
 | Armazenamento (geladeira × bancada × geladeira quebrada) | `Pantry.Age` | tudo envelhece como em geladeira; entra como multiplicador do tempo |
 | Reação por traço de personalidade | não existe | usar `Group` + `DominantAxis` |
-| Ícones de verdade | `IngredientDef.Icon` | campo pronto no `.tres`, sem arte — desenha o `TintColor` |
+| Arte | `Art/` | convenção pronta e 39 imagens listadas em `docs/arte-e-fluxo.xlsx`; sem arte, marcador cor + iniciais |
+| Tempo correndo com painel aberto | `GameScreen._Process` | hoje o painel pausa o mundo; no The Sims o tempo segue — entra quando a autonomia souber não atropelar o jogador |
+| Save / load | — | voltar ao menu descarta a casa |
+| Objetos da casa como conteúdo | `GameScreen._objects` | quatro objetos em código; viram `.tres` quando houver mais cômodos |
 | Primitivos `grid.dual` e `text` | `addons/context_panel/PanelPrimitives.cs` | no mock, sem sistema que os use |
 | Bulk +5 no stepper | — | dispensado: segurar A/+ já repete acelerando, e dois jeitos de fazer a mesma coisa violam o estilo |
 | Emprego | `Household.DailyIncome` | salário fixo às 9h é um substituto declarado; sem renda toda casa morre de fome |

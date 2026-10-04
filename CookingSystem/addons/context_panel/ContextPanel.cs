@@ -383,8 +383,10 @@ public partial class ContextPanel : PanelContainer
     {
         // Confirmar chega aqui só quando nenhum botão focado consumiu o Enter — que é o
         // comportamento certo: com o foco num botão, Enter aciona o botão.
-        if (@event.IsActionPressed("panel_commit")) { RunCommit(@event); AcceptInput(); }
-        else if (@event.IsActionPressed("panel_close")) { RunClose(); AcceptInput(); }
+        // Marca a tecla como tratada antes de agir: confirmar ou fechar pode tirar o painel da
+        // árvore (o host fecha o contexto), e depois disso ele não tem mais viewport.
+        if (@event.IsActionPressed("panel_commit")) { AcceptInput(); RunCommit(@event); }
+        else if (@event.IsActionPressed("panel_close")) { AcceptInput(); RunClose(); }
         else if (@event.IsActionPressed("panel_increment")) { StartRepeat(1); AcceptInput(); }
         else if (@event.IsActionPressed("panel_decrement")) { StartRepeat(-1); AcceptInput(); }
         else if (@event.IsActionReleased("panel_increment") || @event.IsActionReleased("panel_decrement"))

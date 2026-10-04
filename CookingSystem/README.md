@@ -6,10 +6,14 @@ nome, nutrição e qualidade do resultado.
 
 ## Como rodar
 
-Projeto Godot completo — abra a pasta no Godot 4.7 e dê play. A cena principal já é
-`Scenes/CookingDemo.tscn`. O nível de culinária é exportado no inspetor (`CookingLevel`, padrão 6).
+Projeto Godot completo — abra a pasta no Godot 4.7 (.NET), clique em **Build** e dê play. O jogo
+abre no **menu principal**: *Novo jogo* leva à casa (HUD, relógio, fogão, geladeira, pia e porta
+clicáveis); *Bancada de testes* abre o fogão em tela cheia para mexer em conteúdo e balanceamento.
 
-Não precisa de arte: sem ícone, o painel desenha o `TintColor` do item.
+Não precisa de arte: sem imagem, cada item aparece como a cor dele com duas iniciais. Para pôr
+arte, salve o PNG em `Art/<Categoria>/<id>.png` — a lista exata das 39 imagens, tamanhos e onde
+cada uma aparece está em [`docs/arte-e-fluxo.xlsx`](docs/arte-e-fluxo.xlsx), e o passo a passo,
+junto com o fluxo de telas e o mapa de cliques, em [`docs/ARTE-E-FLUXO.md`](docs/ARTE-E-FLUXO.md).
 
 Verificar o balanceamento sem abrir o painel:
 
@@ -36,8 +40,12 @@ addons/context_panel/
            → o shell reutilizável, sem dependência deste projeto: um painel para toda
              interação, e o mesmo painel para os outros jogos. Contrato no README de lá.
 
-UI/        CookingContext, QuickMealContext, CookingDemo
+UI/        CookingContext, QuickMealContext, FridgeContext, ShopContext, HouseInteractions
            → zero estado próprio; escuta CookingSession.Changed e reconstrói a definição
+UI/Game/   MainMenu, GameScreen (a casa), GameClock
+           → o jogo: menu → casa → clique no objeto abre o painel
+
+Art/       a arte, achada pelo nome do arquivo (ver docs/ARTE-E-FLUXO.md)
 ```
 
 ## Um painel, vários contextos

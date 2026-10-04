@@ -26,7 +26,8 @@ public static class QuickMealContext
         Action onManual,
         Action onFridge,
         int mealsReady,
-        Action onShop)
+        Action onShop,
+        Action onClose)
     {
         ArgumentNullException.ThrowIfNull(pantry);
         ArgumentNullException.ThrowIfNull(options);
@@ -49,6 +50,8 @@ public static class QuickMealContext
             Title = "O que preparar?",
             Crumb = "fogão · menu rápido",
             Width = PanelWidth,
+            // Null na ferramenta de dev, onde o fogão é a tela inteira e não há para onde voltar.
+            OnClose = onClose,
             FocusEntry = PanelRegionId.Primary,
 
             Actions = new PanelRegion
@@ -93,7 +96,7 @@ public static class QuickMealContext
                     Slots = options.Select(option => new PanelSlot
                     {
                         Name = option.Name,
-                        Icon = option.Base.Icon,
+                        Icon = option.Anchor.Icon,
                         Tint = option.Base.TintColor,
                         // Risco de intoxicação vem antes do custo: o menu rápido é o caminho
                         // de um clique, e o jogador não pode descobrir o tomate podre depois.
@@ -134,7 +137,7 @@ public static class QuickMealContext
             Preview = new PreviewCard
             {
                 Title = "Prato previsto",
-                Art = selected.Base.Icon,
+                Art = selected.Anchor.Icon,
                 Tint = selected.Base.TintColor,
                 Name = selected.Name,
                 Description = selected.CanMake

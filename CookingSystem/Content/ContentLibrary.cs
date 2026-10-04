@@ -24,16 +24,36 @@ public static class ContentLibrary
     /// e quem faz a separação é a sessão. Duas listas aqui seriam duas fontes da mesma verdade.
     /// </summary>
     public static List<IngredientDef> Ingredients() =>
-        Load<IngredientDef>(IngredientsFolder).OrderBy(d => d.DisplayName).ToList();
+        Load<IngredientDef>(IngredientsFolder)
+            .Select(d => { d.Icon ??= ArtLibrary.Find(ArtLibrary.Ingredients, d.Id); return d; })
+            .OrderBy(d => d.DisplayName).ToList();
 
     public static List<BaseItemDef> Bases() =>
-        Load<BaseItemDef>(BasesFolder).OrderBy(d => d.DisplayName).ToList();
+        Load<BaseItemDef>(BasesFolder)
+            .Select(b =>
+            {
+                b.Icon ??= ArtLibrary.Find(ArtLibrary.Vessels, b.Id);
+                b.DishIcon ??= ArtLibrary.Find(ArtLibrary.Dishes, ArtLibrary.GenericDishPrefix + b.Id);
+                return b;
+            })
+            .OrderBy(d => d.DisplayName).ToList();
 
     public static List<VendorDef> Vendors() =>
-        Load<VendorDef>(VendorsFolder).OrderBy(v => v.DisplayName).ToList();
+        Load<VendorDef>(VendorsFolder)
+            .Select(v => { v.Icon ??= ArtLibrary.Find(ArtLibrary.Vendors, v.Id); return v; })
+            .OrderBy(v => v.DisplayName).ToList();
 
+    /// <summary>
+    /// Âncora não tem <c>Id</c>: quem a identifica é o nome do arquivo, e é por ele que a arte
+    /// do prato é achada — <c>omelete-de-queijo.tres</c> procura <c>omelete-de-queijo.png</c>.
+    /// </summary>
     public static List<RecipeAnchor> Anchors() =>
-        Load<RecipeAnchor>(AnchorsFolder).OrderBy(a => a.DishName).ToList();
+        Load<RecipeAnchor>(AnchorsFolder)
+            .Select(a => { a.Icon ??= ArtLibrary.Find(ArtLibrary.Dishes, FileId(a)); return a; })
+            .OrderBy(a => a.DishName).ToList();
+
+    /// <summary>O nome do arquivo sem extensão: o id de quem não tem campo <c>Id</c>.</summary>
+    public static string FileId(Resource resource) => resource.ResourcePath.GetFile().GetBaseName();
 
     /// <summary>
     /// Despensa toda fresca, idade zero. É a referência do <c>BalanceCheck</c>: os casos de

@@ -45,7 +45,13 @@ public sealed class CookedDish
 
     public required float Intensity { get; init; }
     public required FlavorAxis DominantAxis { get; init; }
-    public required bool MatchedAnchor { get; init; }
+
+    /// <summary>
+    /// A âncora que o prato reconheceu, mesmo sem bônus. É por ela que a tela acha a arte do
+    /// prato: "Omelete de Queijo (Estragado)" continua sendo a omelete no desenho.
+    /// </summary>
+    public RecipeAnchor Anchor { get; init; }
+    public bool MatchedAnchor => Anchor is not null;
 
     /// <summary>Reconheceu a receita, mas ingrediente estragado tirou o bônus.</summary>
     public bool AnchorBonusDenied { get; init; }

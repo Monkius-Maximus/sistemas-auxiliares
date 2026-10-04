@@ -15,6 +15,12 @@ public partial class RecipeAnchor : Resource
     [Export] public string BaseItemId { get; set; } = "";
 
     /// <summary>
+    /// Arte do prato pronto. Vazio, <c>ContentLibrary</c> procura <c>res://Art/Dishes/&lt;arquivo&gt;.png</c>
+    /// pelo nome do <c>.tres</c> — ver <c>docs/ARTE-E-FLUXO.md</c>.
+    /// </summary>
+    [Export] public Texture2D Icon { get; set; }
+
+    /// <summary>
     /// Ingrediente -> unidades. Serve para as duas coisas: a presença de todas as chaves
     /// é o que casa a âncora, e as quantidades são a porção usada pelo menu rápido.
     /// Um campo só, para não existirem duas verdades sobre o que é essa receita.
