@@ -17,6 +17,7 @@ public static class ContentLibrary
     public const string IngredientsFolder = "res://Content/Ingredients";
     public const string BasesFolder = "res://Content/Bases";
     public const string AnchorsFolder = "res://Content/Anchors";
+    public const string VendorsFolder = "res://Content/Vendors";
 
     /// <summary>
     /// Ingredientes e temperos juntos: quem separa os dois é <see cref="IngredientDef.IsSeasoning"/>,
@@ -27,6 +28,9 @@ public static class ContentLibrary
 
     public static List<BaseItemDef> Bases() =>
         Load<BaseItemDef>(BasesFolder).OrderBy(d => d.DisplayName).ToList();
+
+    public static List<VendorDef> Vendors() =>
+        Load<VendorDef>(VendorsFolder).OrderBy(v => v.DisplayName).ToList();
 
     public static List<RecipeAnchor> Anchors() =>
         Load<RecipeAnchor>(AnchorsFolder).OrderBy(a => a.DishName).ToList();

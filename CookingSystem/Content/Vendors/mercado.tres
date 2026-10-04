@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="VendorDef" format=3]
+
+[ext_resource type="Script" path="res://Data/VendorDef.cs" id="1_1hln8"]
+
+[resource]
+script = ExtResource("1_1hln8")
+Id = "mercado"
+DisplayName = "Mercado"
+Description = "Preço de tabela e produto do dia. Fecha às 20h."
+TintColor = Color(0.43529412, 0.6039216, 0.3529412, 1)

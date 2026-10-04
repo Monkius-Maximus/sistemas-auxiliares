@@ -25,7 +25,8 @@ public static class QuickMealContext
         Action onPrepare,
         Action onManual,
         Action onFridge,
-        int mealsReady)
+        int mealsReady,
+        Action onShop)
     {
         ArgumentNullException.ThrowIfNull(pantry);
         ArgumentNullException.ThrowIfNull(options);
@@ -70,6 +71,12 @@ public static class QuickMealContext
                                 ? "Nada pronto ainda. O que você cozinhar e sobrar vai para lá."
                                 : $"{mealsReady} {(mealsReady == 1 ? "refeição pronta" : "refeições prontas")}: comer sem cozinhar.",
                             OnUse = onFridge,
+                        },
+                        new Verb
+                        {
+                            Name = "Comprar mantimentos…",
+                            Note = "Mercado ou conveniência: repor a despensa.",
+                            OnUse = onShop,
                         },
                     },
                 },

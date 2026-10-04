@@ -69,6 +69,8 @@ public partial class BalanceCheck : SceneTree
         GD.Print();
         PrintServings(bases, anchors, defs);
         GD.Print();
+        PrintEconomy(bases, anchors, defs);
+        GD.Print();
         PrintSkillCurve(pantry, bases, anchors, defs);
         GD.Print();
         PrintDaysOfLife(bases.Values.ToList(), anchors, autonomous: true);
@@ -167,6 +169,34 @@ public partial class BalanceCheck : SceneTree
             var sim = new Sim("teste", 30f, 30f);
             GD.Print($"{name,-40}{meal.TotalServings,5}{sim.HungerAfter(meal) - 30f,7:+0;-0}" +
                      $"{sim.ThirstAfter(meal) - 30f,7:+0;-0}  {Sim.MoodletFor(meal).Name}");
+        }
+    }
+
+    /// <summary>
+    /// Quanto custa comer. Um Sim come umas 2,5 porções por dia (fome cai 4/h, porção enche ~40);
+    /// o salário precisa cobrir isso no mercado com folga, e a conveniência precisa doer sem
+    /// quebrar a casa. Se o custo diário no mercado passar do salário, a economia não fecha.
+    /// </summary>
+    private static void PrintEconomy(Dictionary<string, BaseItemDef> bases, List<RecipeAnchor> anchors,
+                                     Dictionary<string, IngredientDef> defs)
+    {
+        var vendors = ContentLibrary.Vendors();
+        GD.Print($"{"custo por receita (salário $" + Household.Household.DailyIncome + "/dia)",-40}" +
+                 string.Concat(vendors.Select(v => $"{v.DisplayName,14}")) + "   porç  $/dia no mais barato");
+        foreach (var anchor in anchors)
+        {
+            var session = new CookingSession(ContentLibrary.FreshPantry(), Level);
+            session.SetBase(bases[anchor.BaseItemId]);
+            foreach (var p in anchor.Portions) session.AddUnit(defs[p.Key], p.Value);
+            var meal = new Meal(DishEvaluator.Evaluate(session, anchors));
+
+            var costs = vendors.Select(v => anchor.Portions.All(p => v.Sells(defs[p.Key]))
+                ? anchor.Portions.Sum(p => v.PriceOf(defs[p.Key]) * p.Value) : (int?)null).ToList();
+            int cheapest = costs.Where(c => c is not null).Min() ?? 0;
+            float perDay = cheapest / (float)meal.TotalServings * 2.5f;
+
+            GD.Print($"{anchor.DishName,-40}" + string.Concat(costs.Select(c => $"{(c is null ? "—" : "$" + c),14}")) +
+                     $"{meal.TotalServings,7}  ${perDay:0}");
         }
     }
 

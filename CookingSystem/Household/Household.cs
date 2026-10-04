@@ -60,6 +60,16 @@ public sealed class Household
     /// <summary>O diário, do mais recente ao mais antigo.</summary>
     public IReadOnlyList<HouseholdEvent> Log => _log;
 
+    /// <summary>
+    /// Salário diário, às 9h. Substituto declarado do sistema de emprego, que não existe ainda:
+    /// sem renda nenhuma, toda casa morre de fome com a ferramenta funcionando "certo".
+    /// </summary>
+    public const int DailyIncome = 120;
+    public const int PaydayHour = 9;
+
+    /// <summary>Dinheiro da casa. Só a compra tira; só o salário põe.</summary>
+    public int Funds { get; private set; } = 150;
+
     /// <summary>Horas desde o começo do jogo.</summary>
     public float Hours { get; private set; } = 8f;
 
@@ -118,13 +128,41 @@ public sealed class Household
         for (float left = hours; left > 0f; left -= 1f)
         {
             float step = MathF.Min(1f, left);
+            int dayBefore = (int)MathF.Floor((Hours - PaydayHour) / 24f);
             Hours += step;
+            if ((int)MathF.Floor((Hours - PaydayHour) / 24f) > dayBefore)
+            {
+                Funds += DailyIncome;
+                Record($"Salário: +${DailyIncome}. Saldo ${Funds}.");
+            }
             foreach (var text in Sim.PassHours(step)) Record(text);
             foreach (var meal in _meals) meal.Age(step / 24f);
             Kitchen.AdvanceTime(step / 24f);
 
             if (Autonomous) ActOnNeeds();
         }
+        Changed?.Invoke();
+    }
+
+    /// <summary>
+    /// Fecha a compra: tira do saldo e põe na despensa, com a idade da prateleira do vendedor.
+    /// Recusa o que a tela também recusa — fechado, carrinho vazio, dinheiro curto.
+    /// </summary>
+    public void Buy(ShoppingTrip trip)
+    {
+        ArgumentNullException.ThrowIfNull(trip);
+        if (!trip.Vendor.IsOpenAt(HourOfDay))
+            throw new InvalidOperationException($"{trip.Vendor.DisplayName} está fechado.");
+        if (trip.Items == 0)
+            throw new InvalidOperationException("Carrinho vazio.");
+        if (trip.Total > Funds)
+            throw new InvalidOperationException($"Faltam ${trip.Total - Funds}.");
+
+        int total = trip.Total, items = trip.Items;
+        Funds -= total;
+        Kitchen.Receive(trip.Cart.Select(kv => (kv.Key, kv.Value, trip.Vendor.StockAgeDays)).ToList());
+        Record($"Compra em {trip.Vendor.DisplayName}: {items} itens por ${total}. Saldo ${Funds}.");
+        trip.Clear();
         Changed?.Invoke();
     }
 

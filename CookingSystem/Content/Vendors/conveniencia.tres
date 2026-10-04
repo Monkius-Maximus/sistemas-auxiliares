@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="VendorDef" format=3]
+
+[ext_resource type="Script" path="res://Data/VendorDef.cs" id="1_ddeip"]
+
+[resource]
+script = ExtResource("1_ddeip")
+Id = "conveniencia"
+DisplayName = "Conveniência"
+Description = "Aberta 24h, mais cara, e o que está na prateleira já tem uns dias."
+TintColor = Color(0.6901961, 0.47058824, 0.2901961, 1)
+Markup = 1.4
+OpensAt = 0
+ClosesAt = 24
+StockAgeDays = 2.0
+Catalog = PackedStringArray("ovo", "bacon", "queijo", "batata", "tomate", "cebolinha", "sal", "pimenta", "acucar", "vinagre")

@@ -95,6 +95,14 @@ public sealed class Pantry
         return taken;
     }
 
+    /// <summary>Unidades novas chegando de fora — compra, presente, colheita.</summary>
+    internal void Receive(IngredientDef def, int units, float ageDays)
+    {
+        if (units <= 0) throw new ArgumentOutOfRangeException(nameof(units));
+        Register(def);
+        Merge(def.Id, ageDays, units);
+    }
+
     internal void Return(IngredientDef def, IEnumerable<Portion> portions)
     {
         foreach (var p in portions)

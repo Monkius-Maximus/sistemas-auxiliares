@@ -32,7 +32,7 @@ public partial class CookingDemo : Control
     private Household.Household _home;
     private CookingSession Kitchen => _home.Kitchen;
 
-    private enum View { QuickMenu, Manual, Fridge }
+    private enum View { QuickMenu, Manual, Fridge, Shop }
 
     /// <summary>
     /// Qual contexto está aberto. Estado de tela sem dono no modelo, por isso mora aqui. O menu
@@ -43,6 +43,10 @@ public partial class CookingDemo : Control
     /// <summary>A refeição marcada na geladeira, e a frase do que aconteceu na última porção.</summary>
     private Meal _selectedMeal;
     private string _lastEat;
+
+    /// <summary>A ida às compras aberta. Estado da interação, mas do modelo: o carrinho é de verdade.</summary>
+    private ShoppingTrip _trip;
+    private List<VendorDef> _vendors;
 
     private List<QuickMealOption> _options;
     private QuickMealOption _selected;
@@ -56,6 +60,7 @@ public partial class CookingDemo : Control
     {
         _bases = ContentLibrary.Bases();
         _anchors = ContentLibrary.Anchors();
+        _vendors = ContentLibrary.Vendors();
 
         var kitchen = new CookingSession(ContentLibrary.StartingPantry(), CookingLevel);
         kitchen.SetBase(_bases[0]);
@@ -86,7 +91,7 @@ public partial class CookingDemo : Control
         _selected = _options[0];
         _definition = () => QuickMealContext.Build(
             Kitchen.Pantry, _options, _selected, Select, PrepareQuick, OpenManualPanel,
-            OpenFridge, _home.Meals.Count);
+            OpenFridge, _home.Meals.Count, OpenShop);
 
         Render();
     }
@@ -117,6 +122,35 @@ public partial class CookingDemo : Control
         _lastEat = null;
         _definition = () => FridgeContext.Build(_home, CurrentMeal(), SelectMeal, EatSelected, OpenQuickMenu, _lastEat);
         Render();
+    }
+
+    /// <summary>
+    /// A loja. Abre no primeiro vendedor aberto agora — às 23h, ninguém quer cair na porta
+    /// fechada do mercado. Fechar descarta o carrinho: nada é cobrado antes de comprar.
+    /// </summary>
+    private void OpenShop()
+    {
+        _view = View.Shop;
+        Kitchen.Clear();
+        var vendor = _vendors.FirstOrDefault(v => v.IsOpenAt(_home.HourOfDay) && !v.AlwaysOpen)
+                     ?? _vendors.FirstOrDefault(v => v.IsOpenAt(_home.HourOfDay))
+                     ?? _vendors[0];
+        _trip = new ShoppingTrip(vendor);
+        _trip.Changed += () => _panel?.Rebuild();
+        _definition = () => ShopContext.Build(_home, _trip, _vendors, _anchors, BuyCart, CloseShop);
+        Render();
+    }
+
+    private void BuyCart() => _home.Buy(_trip);
+
+    /// <summary>
+    /// Troca de contexto primeiro, solta o carrinho depois. Abrir o menu esvazia a cozinha, o que
+    /// redesenha o painel ainda com a definição da loja — sem carrinho, ela quebraria.
+    /// </summary>
+    private void CloseShop()
+    {
+        OpenQuickMenu();
+        _trip = null;
     }
 
     private Meal CurrentMeal()

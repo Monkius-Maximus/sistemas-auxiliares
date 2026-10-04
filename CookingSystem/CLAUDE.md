@@ -8,18 +8,20 @@ qualidade do resultado. Destinado a um life sim estilo The Sims / Project Zomboi
 
 ```
 Data/      Resources do Godot (.tres-ready). Autoria de conteúdo.
-           IngredientDef · BaseItemDef · RecipeAnchor · FlavorProfile · Nutrition · CookingEnums
+           IngredientDef · BaseItemDef · RecipeAnchor · VendorDef · DishModifier ·
+           FlavorProfile · Nutrition · CookingEnums
 
 Cooking/   Modelo. Nenhuma chamada de API do Godot.
            CookingSession (estado mutável) · Pantry (lotes com idade) · Freshness (a régua) ·
            DishEvaluator + DishNamer (puros) · ModifierStack · CookedDish (imutável) ·
            IngredientStack · QuickMealPlanner + QuickMealOption (menu rápido, puros)
 
-Household/ A casa: Household (relógio do mundo, diário) · Meal (prato pronto com porções) ·
-           Sim (fome, sede, humor por moodlets) · Autonomy (o que o Sim decide sozinho, puro).
+Household/ A casa: Household (relógio do mundo, diário, dinheiro) · Meal (prato pronto) ·
+           Sim (fome, sede, humor por moodlets) · Autonomy (o que o Sim decide sozinho, puro) ·
+           ShoppingTrip (o carrinho de uma ida às compras).
            Nenhuma chamada de API do Godot.
 
-Content/   O conteúdo, em .tres: Ingredients/ · Bases/ · Anchors/.
+Content/   O conteúdo, em .tres: Ingredients/ · Bases/ · Anchors/ · Vendors/.
            ContentLibrary lê as pastas — ingrediente novo é arquivo novo, não linha de C#.
 
 addons/context_panel/
@@ -31,7 +33,8 @@ addons/context_panel/
            Contrato próprio em addons/context_panel/README.md.
 
 UI/        As definições de contexto deste sistema: CookingContext (painel manual) ·
-           QuickMealContext (menu rápido) · FridgeContext (geladeira: comer) · DishReadout ·
+           QuickMealContext (menu rápido) · FridgeContext (geladeira: comer) ·
+           ShopContext (mercearia: comprar) · DishReadout ·
            PantryText · CookingDemo. Zero estado próprio.
 
 Tools/     BalanceCheck — roda o avaliador real sobre casos de referência.
@@ -123,7 +126,9 @@ godot --headless --path . --script res://Tools/BalanceCheck.cs
 | Ícones de verdade | `IngredientDef.Icon` | campo pronto no `.tres`, sem arte — desenha o `TintColor` |
 | Primitivos `grid.dual` e `text` | `addons/context_panel/PanelPrimitives.cs` | no mock, sem sistema que os use |
 | Bulk +5 no stepper | — | dispensado: segurar A/+ já repete acelerando, e dois jeitos de fazer a mesma coisa violam o estilo |
-| Segundo contexto real (loja/bancada) | não existe | o shell aguenta e já é addon; falta o sistema por trás |
+| Emprego | `Household.DailyIncome` | salário fixo às 9h é um substituto declarado; sem renda toda casa morre de fome |
+| Autonomia de compras | `Household.ActOnNeeds` | o Sim não compra sozinho, como no The Sims 4; é papel do jogador |
+| Entrega e deslocamento | `Household.Buy` | a compra chega na hora; ir à loja não gasta tempo |
 
 NPCs devem cozinhar com este mesmo código: perícia baixa produz prato ruim por ter menos
 slots e teto menor, não por uma tabela separada de "pratos de NPC".
@@ -207,6 +212,29 @@ Essa última regra de +10 saiu do teste de três dias do `BalanceCheck`: a prime
 sede como motivo para comer, e Ana comia omelete de hora em hora, cozinhava outra, e desmaiava de
 sede com seis porções no estômago. O teste roda a casa do demo por 72 h com semente fixa, com e
 sem livre-arbítrio: com, ela se mantém sozinha; sem, desmaia no primeiro dia.
+
+## Comprar
+
+A despensa só esvaziava. A mercearia (`ShopContext`) é o terceiro contexto do painel — o layout de
+loja do mock original, agora com um sistema por trás.
+
+- **Dinheiro** mora na casa (`Household.Funds`, começa com $150). Só a compra tira; só o salário
+  diário de $120 às 9h põe. O salário é substituto declarado do emprego.
+- **Vendedores são conteúdo** (`VendorDef`, em `Content/Vendors/`), e cada um é uma troca que usa os
+  sistemas que já existem: o **mercado** tem preço de tabela e produto do dia, mas fecha às 20h; a
+  **conveniência** abre 24h, cobra +40% e vende produto com 2 dias de prateleira — que estraga antes.
+  Preço por unidade é `ceil(preço base × markup)`.
+- **O carrinho é do modelo** (`ShoppingTrip`), não da tela: estado da interação, como o prato em
+  preparo. Fechar a loja descarta; nada sai do saldo nem entra na despensa antes de `Household.Buy`,
+  que recusa exatamente o que a tela recusa (fechado, vazio, dinheiro curto).
+- **"Completar receita"**: um verbo por receita conhecida que põe no carrinho exatamente o que falta,
+  descontando a despensa e o que já está no carrinho. A loja conta só o que **presta** — ingrediente
+  estragado não é estoque na hora de decidir o que comprar.
+
+O `BalanceCheck` imprime quanto custa cada receita em cada vendedor contra o salário: no mercado,
+comer custa $41–78 por dia; só de conveniência, a omelete custa ~$108 — dói sem quebrar a casa. Foi
+essa tabela que mostrou que a conveniência não completava receita nenhuma (sem cebolinha, cogumelo
+nem ervas); ganhou cebolinha, para a omelete da madrugada existir.
 
 ## Modificadores
 

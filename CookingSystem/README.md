@@ -90,6 +90,11 @@ livre-arbítrio ligado, o Sim bebe água, come da geladeira e cozinha sozinho qu
 aperta — evitando comida perigosa enquanto ainda tem escolha. Tudo que ele faz sozinho vai
 para o diário da casa.
 
+A despensa se repõe na **mercearia**: o mercado é barato e tem produto do dia, mas fecha à
+noite; a conveniência abre sempre, cobra mais e vende o que já passou dias na prateleira. Um
+verbo por receita põe no carrinho exatamente o que falta. Um salário diário mantém a casa —
+substituto do emprego, que ainda não existe.
+
 O teto de perícia é `0.50 + 0.05 × nível`. Nível 0 nunca passa de 50% mesmo acertando tudo;
 o painel avisa quando é a perícia que está segurando a nota, em vez de deixar o jogador
 otimizar às cegas.

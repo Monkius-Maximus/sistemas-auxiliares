@@ -149,6 +149,17 @@ public sealed class CookingSession
         Changed?.Invoke();
     }
 
+    /// <summary>
+    /// Mercadoria chegando na despensa. Passa pela sessão pelo mesmo motivo que tudo que muda
+    /// estoque: é ela que garante que a tela escuta a mudança.
+    /// </summary>
+    public void Receive(IEnumerable<(IngredientDef Def, int Units, float AgeDays)> goods)
+    {
+        foreach (var (def, units, age) in goods)
+            Pantry.Receive(def, units, age);
+        Changed?.Invoke();
+    }
+
     /// <summary>Unidades estragadas na despensa e no recipiente.</summary>
     public int RottenUnits =>
         Pantry.RottenUnits + _ingredients.Values.Concat(_seasonings.Values).Sum(s => s.RottenUnits);
