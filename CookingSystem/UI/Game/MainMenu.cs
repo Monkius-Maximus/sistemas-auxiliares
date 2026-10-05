@@ -31,10 +31,10 @@ public partial class MainMenu : Control
         column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 24) });
 
         var play = MenuButton("Novo jogo", "A casa da Ana, começando às 8h do dia 1.",
-            () => GetTree().ChangeSceneToFile(GameScenes.Game));
+            () => SceneTransition.Go(this, GameScenes.Game));
         column.AddChild(play);
         column.AddChild(MenuButton("Bancada de testes", "O fogão em tela cheia, com relógio na mão. Ferramenta de dev.",
-            () => GetTree().ChangeSceneToFile(GameScenes.Workbench)));
+            () => SceneTransition.Go(this, GameScenes.Workbench)));
         column.AddChild(MenuButton("Sair", "", () => GetTree().Quit()));
 
         // Foco no primeiro botão: com controle, o jogador precisa de um lugar para começar.

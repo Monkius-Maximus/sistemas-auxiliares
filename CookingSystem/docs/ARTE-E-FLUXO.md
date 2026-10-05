@@ -53,7 +53,7 @@ Tudo o que é **estrutura de tela** é desenhado pelo Godot a partir das cores d
 - o anel de foco laranja (teclado e controle);
 - as barras de qualidade, de fome e de sede;
 - etiquetas, chips e pontos de estado;
-- o fundo escurecido atrás de um painel aberto e do menu de pausa;
+- o fundo escurecido atrás de um painel aberto e do menu de pausa, e os fades de transição;
 - o marcador de item sem arte (cor + iniciais);
 - as teclas do rodapé (Enter, Tab, Esc), que hoje são texto.
 
@@ -220,19 +220,41 @@ Nenhuma regra mora na tela. O clique chama o modelo, e o modelo avisa que mudou:
 clique no Fogão
   → HouseInteractions.OpenStove()        (qual tela abrir: estado de tela)
     → QuickMealPlanner.Plan(...)          (o que dá para fazer: modelo)
-    → evento Opened
-      → GameScreen.ShowPanel()            (cria o ContextPanel por cima da casa)
+    → ContextNavigator.Push(tela Fogão)   (escurece a casa, painel entra com fade)
+      → StackChanged → o relógio para (a tela pede PausesWorld)
+
+clique em "Comprar mantimentos…" (dentro do fogão)
+  → ContextNavigator.Push(tela Mercearia) (o fogão fica escondido, vivo, por baixo)
+    → cabeçalho: "Fogão › Mercearia"
 
 clique em "Preparar"
   → QuickMealPlanner.Prepare(...)         (gasta a despensa, cozinha)
   → Household.Store(prato)                (vira refeição na geladeira)
-  → Household.Changed → HUD e objetos redesenham
+  → Household.Changed → HUD, objetos e o painel do topo redesenham
 
 Esc no painel
   → ContextPanel consome o Esc (é o nó mais fundo, recebe primeiro)
-  → HouseInteractions.Close() → evento Closed
-    → GameScreen.HidePanel()              (tira o painel, o tempo volta)
+  → ContextNavigator.Back()               (volta uma tela)
+    → a tela que sai devolve o que segurava (recipiente, carrinho)
+    → a de baixo replaneja e o cursor volta ao mesmo ladrilho
+    → da última tela: fecha, a casa volta e o tempo anda
 ```
+
+### O navegador
+
+Toda tela de interação é uma `ContextScreen` numa pilha (`addons/context_panel/ContextNavigator.cs`):
+
+| Operação | Quando | Efeito |
+|---|---|---|
+| `Push` | abrir uma tela (objeto da casa ou verbo dentro de outra tela) | a de baixo fica escondida e lembra o foco |
+| `Back` | ✕, Esc, B — sempre | volta uma; da última, fecha |
+| `Replace` | trocar a tela sem passar pela de baixo | — |
+| `CloseAll` | fechar tudo de uma vez | — |
+
+Cada tela declara `Title` (vai para a trilha "Fogão › …"), `PausesWorld` (o relógio da casa
+para enquanto ela está no topo), `OnReveal` (voltou ao topo: replanejar) e `OnLeave` (saiu:
+devolver o que segurava). Trocar de cena inteira (menu, casa, bancada) passa por
+`SceneTransition.Go`, que faz o fade para o preto.
 
 A tabela completa (tela, elemento, mouse, teclado, controle, efeito e código) está na aba
 **Cliques e teclas** da planilha. Os atalhos principais:
@@ -252,7 +274,7 @@ A tabela completa (tela, elemento, mouse, teclado, controle, efeito e código) e
 | Quero… | Arquivo |
 |---|---|
 | um objeto novo na casa (ex.: cama) | `UI/Game/GameScreen.cs`, lista `_objects`, mais a arte em `Art/House/` |
-| uma tela nova (ex.: inventário) | uma definição de contexto em `UI/` mais um `Open…` em `HouseInteractions` |
+| uma tela nova (ex.: inventário) | uma definição de contexto em `UI/` mais um `Open…` em `HouseInteractions` que faz `Push` |
 | mudar a velocidade do tempo | `UI/Game/GameClock.cs` (`SecondsPerHour`, `Multipliers`) |
 | mudar uma tecla | *Projeto › Configurações › Mapa de Entrada* (ações `game_*` e `panel_*`) |
 | mudar cores | `addons/context_panel/PanelSkin.cs` |

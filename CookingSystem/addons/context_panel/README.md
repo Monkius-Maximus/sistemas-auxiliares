@@ -70,7 +70,10 @@ A regra que impede o catálogo de apodrecer: um primitivo precisa se justificar 
 - **Não guarda estado do seu modelo.** A exceção é o foco: `PanelFocus` guarda
   `(região, índice)` porque é onde o cursor do jogador está *neste* painel, e morre com ele.
 - **Não abre nem fecha a si mesmo.** Quem abre a interação é o host, e é ele que sabe se o
-  mundo pausa.
+  mundo pausa. Para mais de uma tela, use o `ContextNavigator`: uma pilha de `ContextScreen`
+  (`Push` / `Back` / `Replace` / `CloseAll`), com a trilha "Fogão › Mercearia" no cabeçalho, o
+  foco lembrado em cada tela de baixo e um fade curto em toda troca. O contexto passa
+  `navigator.Back` como `OnClose`. Troca de cena inteira: `SceneTransition.Go(no, caminho)`.
 - **Não tem arte.** `PreviewCard.Art` e os ícones dos slots aceitam `Texture2D`. Com textura,
   ela aparece sozinha, sem a cor por trás; sem textura, o painel desenha a cor (`Tint`) com as
   iniciais do nome (`PanelPrimitives.Monogram`). Achar a textura é trabalho do jogo, não do painel.

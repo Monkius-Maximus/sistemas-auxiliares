@@ -30,42 +30,46 @@ public partial class CookingDemo : Control
     private HouseInteractions _house;
     private Household.Household Home => _house.Home;
 
-    private ContextPanel _panel;
+    private ContextNavigator _nav;
+    private PanelContainer _screen;
+    private Control _devBar;
+    private Control _diary;
     private PanelSkin _skin = PanelSkin.Dark;
-    private bool _showRegionLabels;
 
     public override void _Ready()
     {
-        _house = new HouseInteractions(HouseInteractions.NewHousehold(CookingLevel), CookingLevel, canCloseStove: false);
-        _house.Opened += Render;
-        _house.Changed += () => _panel?.Rebuild();
-        // Geladeira e loja abertas pelo menu voltam a ele; sem objeto da casa para abrir
-        // outra coisa, fechar aqui só pode cair de volta no fogão.
-        _house.Closed += _house.OpenStove;
+        _screen = new PanelContainer { AnchorRight = 1, AnchorBottom = 1 };
+        AddChild(_screen);
+
+        var column = new VBoxContainer();
+        column.AddThemeConstantOverride("separation", 16);
+        _screen.AddChild(column);
+
+        _devBar = new MarginContainer();
+        // Inline: a bancada é o fogão em tela cheia, sem casa por trás para escurecer.
+        _nav = new ContextNavigator { Skin = _skin, Modal = false, SizeFlagsVertical = SizeFlags.ExpandFill };
+        _diary = new MarginContainer();
+        column.AddChild(_devBar);
+        column.AddChild(_nav);
+        column.AddChild(_diary);
+
+        _house = new HouseInteractions(HouseInteractions.NewHousehold(CookingLevel), CookingLevel, _nav, canCloseStove: false);
+        Home.Changed += Refresh;
         _house.OpenStove();
+        Refresh();
     }
 
     // ------------------------------------------------------------------
     // Tela
     // ------------------------------------------------------------------
 
-    private void Render()
+    /// <summary>
+    /// Barra de dev, diário e fundo, que estão fora do painel. O painel não é tocado: quem o
+    /// redesenha é o navegador, e recriá-lo aqui perderia a pilha e o foco.
+    /// </summary>
+    private void Refresh()
     {
-        foreach (var child in GetChildren())
-        {
-            RemoveChild(child);
-            child.QueueFree();
-        }
-
-        _panel = new ContextPanel
-        {
-            Definition = _house.Definition,
-            Skin = _skin,
-            ShowRegionLabels = _showRegionLabels,
-        };
-
-        var screen = new PanelContainer { AnchorRight = 1, AnchorBottom = 1 };
-        screen.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        _screen.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
             BgColor = _skin.Background,
             ContentMarginLeft = 24,
@@ -73,15 +77,18 @@ public partial class CookingDemo : Control
             ContentMarginTop = 24,
             ContentMarginBottom = 24,
         });
-        AddChild(screen);
+        Replace(_devBar, DevBar());
+        Replace(_diary, Diary());
+    }
 
-        var column = new VBoxContainer();
-        column.AddThemeConstantOverride("separation", 16);
-        screen.AddChild(column);
-
-        column.AddChild(DevBar());
-        column.AddChild(_panel);
-        column.AddChild(Diary());
+    private static void Replace(Node slot, Node content)
+    {
+        foreach (var child in slot.GetChildren())
+        {
+            slot.RemoveChild(child);
+            child.QueueFree();
+        }
+        slot.AddChild(content);
     }
 
     /// <summary>Barra de autoria: trocar a pele e etiquetar as regiões do shell.</summary>
@@ -89,10 +96,10 @@ public partial class CookingDemo : Control
     {
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 6);
-        row.AddChild(DevButton("← Menu", () => GetTree().ChangeSceneToFile(GameScenes.MainMenu)));
+        row.AddChild(DevButton("← Menu", () => SceneTransition.Go(this, GameScenes.MainMenu)));
         row.AddChild(PanelPrimitives.Text("Dev", 10, _skin.Mute));
         row.AddChild(DevButton(_skin == PanelSkin.Dark ? "Pele · escura" : "Pele · clara", ToggleSkin));
-        row.AddChild(DevButton(_showRegionLabels ? "Regiões · visíveis" : "Regiões · ocultas", ToggleRegionLabels));
+        row.AddChild(DevButton(_nav.ShowRegionLabels ? "Regiões · visíveis" : "Regiões · ocultas", ToggleRegionLabels));
         row.AddChild(PanelPrimitives.Text(
             $"Dia {Home.Day} · {Home.HourOfDay:00}h  ·  {Home.Sim.Name}: fome {Home.Sim.Hunger:0}, " +
             $"sede {Home.Sim.Thirst:0}, humor {Home.Sim.Mood:+0;-0;0}", 10, _skin.Mute));
@@ -134,27 +141,27 @@ public partial class CookingDemo : Control
     private void ToggleAutonomy()
     {
         Home.Autonomous = !Home.Autonomous;
-        Render();
+        Refresh();
     }
 
     private void PassTime(float hours)
     {
         Home.AdvanceHours(hours);
         _house.TimePassed();
-
-        // A barra de dev mostra o relógio e as necessidades, que estão fora do painel.
-        Render();
     }
 
     private void ToggleSkin()
     {
         _skin = _skin == PanelSkin.Dark ? PanelSkin.Light : PanelSkin.Dark;
-        Render();
+        _nav.Skin = _skin;
+        _nav.Restyle();
+        Refresh();
     }
 
     private void ToggleRegionLabels()
     {
-        _showRegionLabels = !_showRegionLabels;
-        Render();
+        _nav.ShowRegionLabels = !_nav.ShowRegionLabels;
+        _nav.Restyle();
+        Refresh();
     }
 }

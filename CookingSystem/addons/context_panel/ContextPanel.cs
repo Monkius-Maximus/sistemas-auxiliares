@@ -30,6 +30,13 @@ public partial class ContextPanel : PanelContainer
     public bool ShowRegionLabels { get; set; }
 
     /// <summary>
+    /// As telas abaixo desta na pilha do <see cref="ContextNavigator"/>, da mais funda para a
+    /// mais rasa. Aparecem antes do título ("Fogão › Mercearia"): o jogador vê para onde o
+    /// ✕ vai levar antes de apertar.
+    /// </summary>
+    public IReadOnlyList<string> Trail { get; set; } = Array.Empty<string>();
+
+    /// <summary>
     /// Ordem de travessia por região. Preview não entra: não tem nada focável dentro.
     /// </summary>
     private static readonly PanelRegionId[] Traversal =
@@ -51,7 +58,7 @@ public partial class ContextPanel : PanelContainer
 
         // Foco autorado: o contexto diz onde ele começa. Deixar o Godot escolher põe o
         // jogador de controle no primeiro nó da árvore, que raramente é onde ele quer.
-        FocusRegion(Definition().FocusEntry);
+        FocusEntry();
     }
 
     public void Rebuild()
@@ -120,6 +127,8 @@ public partial class ContextPanel : PanelContainer
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 10);
         row.AddChild(AccentMark());
+        foreach (var parent in Trail)
+            row.AddChild(PanelPrimitives.Text($"{parent}  ›", 15, Skin.Mute));
         row.AddChild(PanelPrimitives.Text(context.Title, 15, Skin.Ink));
 
         var crumb = PanelPrimitives.Text(context.Crumb, 12, Skin.Mute);
@@ -326,6 +335,29 @@ public partial class ContextPanel : PanelContainer
             FocusRegion(next);
             return;
         }
+    }
+
+    /// <summary>
+    /// Devolve o foco a onde o jogador estava neste painel — a região e a célula sobrevivem em
+    /// <see cref="PanelFocus"/> enquanto o painel existe. É o que o navegador chama ao voltar
+    /// para uma tela de baixo da pilha.
+    /// </summary>
+    public void RestoreFocus()
+    {
+        if (_focus.Restore(_focus.Region)) RefreshPrompts(Definition());
+        else FocusEntry();
+    }
+
+    /// <summary>
+    /// A região de entrada, ou a próxima que tenha onde pousar. Geladeira vazia não tem
+    /// refeição para focar, e foco nenhum dentro do painel deixa o controle sem ação — ou,
+    /// pior, com o foco no botão da cena por trás.
+    /// </summary>
+    private void FocusEntry()
+    {
+        var entry = Definition().FocusEntry;
+        if (_focus.HasCells(entry)) FocusRegion(entry);
+        else JumpRegion(1);
     }
 
     private void FocusRegion(PanelRegionId region)

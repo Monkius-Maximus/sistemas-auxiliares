@@ -13,8 +13,8 @@ namespace LifeSim.Cooking;
 /// <code>
 ///   _Process ─ relógio corre? ─ sim ─ Household.AdvanceHours(1) a cada hora inteira
 ///                                      └ Changed ─ HUD e diário redesenham
-///   clique num objeto ─ HouseInteractions abre um contexto ─ painel por cima, tempo parado
-///   ✕ / Esc no painel ─ fecha o contexto ─ tempo volta a correr
+///   clique num objeto ─ HouseInteractions empilha uma tela no ContextNavigator ─ tempo parado
+///   ✕ / Esc no painel ─ navegador volta uma tela; da última, fecha ─ tempo volta a correr
 ///   Esc sem painel ─ menu de pausa ─ Continuar · Menu principal · Sair
 /// </code>
 ///
@@ -35,8 +35,7 @@ public partial class GameScreen : Control
     private Control _hud;
     private Control _room;
     private Control _diary;
-    private Control _overlay;
-    private ContextPanel _panel;
+    private ContextNavigator _nav;
     private Control _pauseMenu;
 
     /// <summary>O objeto clicado por último: fechar o painel devolve o foco a ele, não ao começo da tela.</summary>
@@ -55,10 +54,11 @@ public partial class GameScreen : Control
     {
         SetAnchorsPreset(LayoutPreset.FullRect);
 
-        _house = new HouseInteractions(HouseInteractions.NewHousehold(CookingLevel), CookingLevel, canCloseStove: true);
-        _house.Opened += ShowPanel;
-        _house.Changed += () => _panel?.Rebuild();
-        _house.Closed += HidePanel;
+        // Modal: escurece a casa e engole o clique por trás. Entra na árvore por último, por cima
+        // de tudo, e por ser o nó mais fundo recebe o Esc antes do menu de pausa.
+        _nav = new ContextNavigator { Skin = _skin };
+        _nav.StackChanged += OnStackChanged;
+        _house = new HouseInteractions(HouseInteractions.NewHousehold(CookingLevel), CookingLevel, _nav, canCloseStove: true);
         Home.Changed += Refresh;
 
         _objects = new List<HouseObject>
@@ -92,6 +92,8 @@ public partial class GameScreen : Control
         column.AddChild(_room);
         column.AddChild(_diary);
 
+        AddChild(_nav);
+
         Refresh();
         FocusObject(_objects[1].Id);
     }
@@ -101,13 +103,14 @@ public partial class GameScreen : Control
     // ------------------------------------------------------------------
 
     /// <summary>
-    /// O tempo só corre na casa: com o painel ou o menu de pausa abertos, o mundo espera o
-    /// jogador. Decisão de protótipo — no The Sims o tempo segue com a interface aberta, e
-    /// isso entra quando a autonomia souber não atropelar o que o jogador está montando.
+    /// O tempo corre na casa e para quando a tela do topo pede (<see cref="ContextScreen.PausesWorld"/>)
+    /// ou o menu de pausa está aberto. Hoje toda tela pede — decisão de protótipo: no The Sims
+    /// o tempo segue com a interface aberta, e isso entra quando a autonomia souber não
+    /// atropelar o que o jogador está montando.
     /// </summary>
     public override void _Process(double delta)
     {
-        if (_house.IsOpen || _pauseMenu is not null)
+        if (_nav.PausesWorld || _pauseMenu is not null)
             return;
 
         int hours = _clock.Tick(delta);
@@ -132,7 +135,7 @@ public partial class GameScreen : Control
             return;
         }
 
-        if (_pauseMenu is not null || _house.IsOpen)
+        if (_pauseMenu is not null || _nav.IsOpen)
             return;
 
         if (@event.IsActionPressed("game_pause")) { _clock.TogglePause(); RefreshHud(); AcceptEvent(); }
@@ -394,41 +397,21 @@ public partial class GameScreen : Control
     // Painel e pausa
     // ------------------------------------------------------------------
 
-    /// <summary>Um contexto abriu (ou trocou): painel novo por cima da casa, que escurece.</summary>
-    private void ShowPanel()
+    /// <summary>
+    /// A pilha do navegador mudou. Fechou de vez: a casa volta a ser a tela, redesenhada com o que
+    /// mudou enquanto o painel estava aberto, e o foco volta ao objeto que abriu a interação.
+    /// </summary>
+    private void OnStackChanged()
     {
-        RemoveOverlay();
-
-        _overlay = Dimmer();
-        var center = new CenterContainer();
-        center.SetAnchorsPreset(LayoutPreset.FullRect);
-        _overlay.AddChild(center);
-
-        _panel = new ContextPanel { Definition = _house.Definition, Skin = _skin };
-        center.AddChild(_panel);
-        AddChild(_overlay);
-    }
-
-    private void HidePanel()
-    {
-        RemoveOverlay();
+        if (_nav.IsOpen) return;
         Refresh();
         if (_lastObject is not null)
             FocusObject(_lastObject);
     }
 
-    private void RemoveOverlay()
-    {
-        _panel = null;
-        if (_overlay is null) return;
-        RemoveChild(_overlay);
-        _overlay.QueueFree();
-        _overlay = null;
-    }
-
     private void ShowPauseMenu()
     {
-        if (_pauseMenu is not null || _house.IsOpen) return;
+        if (_pauseMenu is not null || _nav.IsOpen) return;
 
         _pauseMenu = Dimmer();
         var center = new CenterContainer();
@@ -447,7 +430,7 @@ public partial class GameScreen : Control
         column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 6) });
         var resume = PauseButton("Continuar", HidePauseMenu);
         column.AddChild(resume);
-        column.AddChild(PauseButton("Menu principal", () => GetTree().ChangeSceneToFile(GameScenes.MainMenu)));
+        column.AddChild(PauseButton("Menu principal", () => SceneTransition.Go(this, GameScenes.MainMenu)));
         column.AddChild(PauseButton("Sair do jogo", () => GetTree().Quit()));
 
         AddChild(_pauseMenu);
@@ -472,7 +455,7 @@ public partial class GameScreen : Control
         return button;
     }
 
-    /// <summary>Cobre a tela inteira e engole o clique: com algo aberto, a casa por trás não responde.</summary>
+    /// <summary>Cobre a tela inteira e engole o clique: com o menu aberto, a casa por trás não responde.</summary>
     private Control Dimmer()
     {
         var dim = new ColorRect { Color = new Color(0, 0, 0, 0.6f), MouseFilter = MouseFilterEnum.Stop };
